@@ -3,18 +3,23 @@ Possible additions:
 -Check that the state codes do not suffer from integer overflow.
 -Determine whether the transition function leads to an infinite state space.
 """
-
+from __future__ import print_function
 import numpy as np
 from scipy.sparse import coo_matrix, csgraph, eye, vstack
 from scipy.sparse.linalg import eigs, gmres, spsolve
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
-from itertools import imap
+try: #For python 3 functionality.
+    from itertools import imap
+except ImportError:
+    imap = map
 
 def uniqueStates(states,rates):
     """
-    Returns unique states and sums up the corresponding rates     
-    Useful in the transition function for summing up the rates of different transitions that lead to the same state            
+    Returns unique states and sums up the corresponding rates.
+    States should be a 2d numpy array with on each row a state, and rates a 1d numpy array with length equal to the number of rows in states.      
+    
+    This may be helpful in the transition function for summing up the rates of different transitions that lead to the same state            
     """        
     order     = np.lexsort(states.T)
     states    = states[order]
@@ -91,18 +96,13 @@ class markovChain(object):
 
         if isinstance(initialState,(list,tuple)):
             assert all(isinstance(i, int) for i in initialState), "initialState %r is not integer" % initialState 
-            if len(initialState)==1:
-                initialState = int(initialState)
-            else:
-                initialState = tuple(initialState)                 
-            
-        if isinstance(initialState,np.ndarray):
+            initialState = int(initialState) if len(initialState)==1 else tuple(initialState) 
+        elif isinstance(initialState,np.ndarray):
             assert issubclass(initialState.dtype.type, np.integer) and initialState.ndim==1, "initialState %r is not a one-dimensional integer numpy array" % initialState 
-            if len(initialState)==1:
-                initialState = int(initialState)
-            else:
-                initialState = tuple(initialState)
+            initialState = int(initialState) if len(initialState)==1 else tuple(initialState) 
+
         return initialState
+
 
     def checkTransitionType(self,state):
         """
@@ -111,9 +111,11 @@ class markovChain(object):
         Or a tuple consisting of a 2d integer numpy array with states and a 1d numpy array with rates.  
         """        
         test = self.transition(state)
+        assert isinstance(test,(dict,tuple)), "Transition function does not return a dict or tuple"
+        
         if isinstance(test,dict):
             assert all(isinstance(states, (int,tuple)) for states in test.keys()), "Transition function returns a dict, but states are not represented as tuples or integers"
-            assert all(isinstance(rates, (int,float)) for rates in test.values()), "Transition function returns a dict, but the rates should be scalars."
+            assert all(isinstance(rates, float) for rates in test.values()), "Transition function returns a dict, but the rates should be floats."
             usesNumpy=False
             
         if isinstance(test,tuple):
@@ -126,6 +128,9 @@ class markovChain(object):
         return usesNumpy         
     
     def convertToTransitionDict(self,transitions):
+        """
+        If numpy is used, then this turns the output from transition() into a dict.  
+        """  
         states,rates = transitions
         rateDict = defaultdict(float)
         if states.shape[1] == 1:
@@ -173,15 +178,20 @@ class markovChain(object):
                 rates[(fromindex, toindex)] = rate
 
         #Inverse the keys and values in mapping to get a dictionary with indices and states.
-        self.mapping = {value: key for key, value in mapping.iteritems()}
+        self.mapping = {value: key for key, value in list(mapping.items())}
         
         #Now use the keys and values of the rates dictionary to fill up a sparse coo_matrix.
-        rateArray = np.array(rates.keys())
+        rateArray = np.array(list(rates.keys()))
         rows      = rateArray[:,0]
         cols      = rateArray[:,1]
-        return coo_matrix((np.array(rates.values()),(rows,cols)),shape=(self.size,self.size),dtype=float).tocsr()
+        return coo_matrix((np.array(list(rates.values())),(rows,cols)),shape=(self.size,self.size),dtype=float).tocsr()
        
     def getStateCode(self,state):
+        """                
+        Calculates the state code for a specific state or set of states.
+        We transform the states so that they are nonnegative and take an inner product.
+        The resulting number is unique because we use numeral system with a large enough base.
+        """
         return np.dot(state-self.minvalues,self.statecode)
             
     def setStateCodes(self):    
@@ -386,4 +396,4 @@ class markovChain(object):
         """
         if self.pi is not None:
             for key,state in self.mapping.items():
-                print state,self.pi[key]
+                print(state,self.pi[key])

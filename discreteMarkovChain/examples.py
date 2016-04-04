@@ -1,3 +1,4 @@
+from __future__ import print_function
 import numpy as np
 from itertools import product
 from markovChain import markovChain
@@ -97,14 +98,14 @@ if __name__ == '__main__':
     #for a one-dimensional state space, calculate the steady state distribution.
     #provided uprate and downrate are the same, each state is equally likely
     m = 0; M = 5    
-    print randomWalk(m,M).pi 
-    print randomWalkNumpy(m,M,n=1,direct=True).pi
+    print(randomWalk(m,M).pi) 
+    print(randomWalkNumpy(m,M,n=1,direct=True).pi)
     
     #When states are scalar integers, the indirect method is faster here. 
     #The linear algebra solver is quite fast for these one-dimensional problems (here, krylov and power method have really poor performance)
     M = 100000
-    tm=time.clock(); randomWalk(m,M,method='linear'); print "Indirect:",time.clock()-tm
-    tm=time.clock(); randomWalkNumpy(m,M,n=1,method='linear'); print "Direct:", time.clock()-tm       
+    tm=time.clock(); randomWalk(m,M,method='linear'); print("Indirect:",time.clock()-tm)
+    tm=time.clock(); randomWalkNumpy(m,M,n=1,method='linear'); print("Direct:", time.clock()-tm)       
          
     
     #Now a multidimensional case with an equal number of states.
@@ -112,5 +113,5 @@ if __name__ == '__main__':
     #Here the krylov method and power method seem to work best. 
     #The linear algebra solver has memory problems, likely due to fill up of the sparse matrix.
     n = 5; m = 0; M = 9
-    tm=time.clock(); randomWalkMulti(m,M,n,method='krylov'); print "Indirect:", time.clock()-tm
-    tm=time.clock(); randomWalkNumpy(m,M,n,method='krylov'); print "Direct:",time.clock()-tm
+    tm=time.clock(); randomWalkMulti(m,M,n,method='krylov'); print("Indirect:", time.clock()-tm)
+    tm=time.clock(); randomWalkNumpy(m,M,n,method='krylov'); print("Direct:",time.clock()-tm)

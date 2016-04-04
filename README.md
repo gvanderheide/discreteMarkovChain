@@ -25,6 +25,8 @@ The module introduces the `markovChain` class which has the following features.
 ###Example
 The `markovChain` class can be used to initialize your own Markov chains. This is an example of a one-dimensional random walk between integers m and M, using the indirect method. While numpy is obligatory for the direct method, the indirect method allows for a transition function that returns a dictionary.
 ```python
+from discreteMarkovChain import markovChain
+
 class randomWalk(markovChain):
     #A random walk where we move up and down with rate 0.5 in each state between bounds m and M.
     #Uses the linear algebra solver for determing the steady-state.

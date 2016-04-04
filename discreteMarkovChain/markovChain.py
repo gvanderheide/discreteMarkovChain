@@ -11,6 +11,17 @@ from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
 from itertools import imap
 
+def uniqueStates(states,rates):
+    """
+    Returns unique states and sums up the corresponding rates     
+    Useful in the transition function for summing up the rates of different transitions that lead to the same state            
+    """        
+    order     = np.lexsort(states.T)
+    states    = states[order]
+    diff      = np.ones(len(states), 'bool')
+    diff[1:]  = (states[1:] != states[:-1]).any(-1)
+    sums      = np.bincount(diff.cumsum() - 1, rates[order])
+    return states[diff], sums
 
 class markovChain(object):
     """
@@ -52,19 +63,7 @@ class markovChain(object):
         Return the number of states in the state space
         """
         return len(self.mapping)
-        
-    def uniqueStates(self,states,rates):
-        """
-        Returns unique states and sums up the corresponding rates     
-        Useful in the transition function for summing up the rates of different transitions that lead to the same state            
-        """        
-        order     = np.lexsort(states.T)
-        states    = states[order]
-        diff      = np.ones(len(states), 'bool')
-        diff[1:]  = (states[1:] != states[:-1]).any(-1)
-        sums      = np.bincount(diff.cumsum() - 1, rates[order])
-        return states[diff], sums
-    
+       
     def statespace(self):
         """
         To be provided by the subclass. Return the state space

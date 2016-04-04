@@ -5,6 +5,11 @@ The module introduces the `markovChain` class which has the following features.
 
 * States in the state space can be integers or integer vectors (1d numpy arrays). 
 * The Markov chain can be a continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC). 
+* At the moment, four different methods for calculating steady state distributions are included: 
+   * The power method,
+   * Linear algebra solver,
+   * The first left eigenvector, 
+   * Krylov subspace method.
 * There are two alternative methods for obtaining the generator/transition matrix of the Markov chain: a direct and an indirect method.
    * Both methods require the user to specify a transition function. 
    * The indirect method requires only an initial state. 
@@ -13,14 +18,8 @@ The module introduces the `markovChain` class which has the following features.
    * The direct method requires a function that gives the state space on beforehand. 
      * States are translated into unique codes that can be used to identify reachable states. 
      * This has some computational and memory advantages for vector states.
-* Four different methods for calculating steady state distributions are included: 
-   * The power method,
-   * Linear algebra solver,
-   * The first left eigenvector, 
-   * Krylov subspace method.
 * Memory consumption is reduced by using sparse matrices. 
 * Checks are included to see whether all states in the Markov chain are connected.
-
 
 ###Example
 The `markovChain` class can be used to initialize your own Markov chains. This is an example of a one-dimensional random walk between integers m and M, using the indirect method. While numpy is obligatory for the direct method, the indirect method allows for a transition function that returns a dictionary.

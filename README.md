@@ -1,5 +1,5 @@
 # discreteMarkovChain
-This Python module calculates the steady state distribution of a Markov chain with a discrete state space. Markov chains with several million states can be solved. This module is for Python 2.7 and its only dependency is numpy/scipy.
+This Python module calculates the steady state distribution of a Markov chain with a discrete state space. Markov chains with several million states can be solved. This module works in the latest versions of Python 2 and Python 3 and its only dependency is numpy/scipy.
 
 The module introduces the `markovChain` class which has the following features. 
 

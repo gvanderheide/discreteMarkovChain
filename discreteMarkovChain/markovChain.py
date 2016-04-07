@@ -263,7 +263,7 @@ class markovChain(object):
             left = right
             right += len(col)
             if right >= len(cols):
-                new_capacity = right * 1.5  #increase the allocated memory if the vectors turn out to be too small.
+                new_capacity = int(round(right * 1.5))  #increase the allocated memory if the vectors turn out to be too small.
                 cols.resize(new_capacity)
                 rates.resize(new_capacity)
                 rows.resize(new_capacity)

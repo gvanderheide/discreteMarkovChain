@@ -6,37 +6,95 @@ Home-page: https://github.com/gvanderheide/discreteMarkovChain
 Author: Gerlach van der Heide
 Author-email: g.van.der.heide@rug.nl
 License: MIT
-Description: discreteMarkovChain
-        =======================
-        This Python module based on numpy/scipy calculates the steady state distribution of a Markov chain with a discrete state space. Markov chains with several million states can be solved. 
-        The module introduces the `markovChain` class which has the following features. 
+Description: discreteMarkovChain
+        =======================
+        This Python module based on numpy/scipy calculates the steady state distribution of a Markov chain with a discrete state space. Markov chains with several million states can be solved. 
+        The module introduces the `markovChain` class which has the following features. 
+        
+        * States can be vectors or scalars.
+        * Steady state distributions can be calculated for continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC). 
+        * The generator/transition matrix of the Markov chain is derived automatically using an indirect or direct method.
+        * The indirect method requires the user to specify an initial state and transition function (giving for each state the reachable states and their probabilities). 
+           *By repeatedly calling the transition function on unvisited states, the state space and the generator matrix are built up automatically.
+           *This is easy to implement!
+        * The direct method requires the user to specify a transition function and a function that calculates the state space. 
+           *While more complex, it has some computational advantage for large state spaces consisting of vectors. 
+        * The steady state distribution can be calculated by a method of choice: 
+           * The power method,
+           * Solving a system of linear equations,
+           * Determing the first left eigenvector, 
+           * Searching in Krylov subspace.
+        * Checks are included to see whether all states in the Markov chain are connected.
+        * Memory consumption is reduced by using sparse matrices. 
+        
+        When a certain solution method is called, the `markovChain` object gets the attribute `pi` which specifies the steady state probability of each state. 
+        A dictionary called `mapping` is included that links each index of `pi` with the corresponding state. 
+        
+        --------------
+        Installation
+        --------------
+        The package can be installed by calling
+        
+        ::
+        
+            pip install discreteMarkovChain
+        
+        or by downloading the source and installing manually with
+        
+        ::
+        
+            python setup.py install
+        
+        ------------
+        Example
+        ------------
+        The `markovChain` class can be used to initialize your own Markov chains. This is an example of a one-dimensional random walk between integers m and M, using the indirect method. While numpy is obligatory for the direct method, the indirect method allows for a transition function that returns a dictionary.
+        
+        ::
+        
+            from discreteMarkovChain import markovChain
+        
+            class randomWalk(markovChain):
+                #A random walk where we move up and down with rate 0.5 in each state between bounds m and M.
+                #We use the indirect method for obtaining the state space and the linear algebra solver for determing the steady-state.
+                def __init__(self,m,M,direct=False,method='linear'):
+                    super(randomWalk, self).__init__(direct=direct,method=method)
+                    self.initialState = m
+                    self.m = m
+                    self.M = M
+                    self.uprate = 0.5
+                    self.downrate = 0.5
+                
+                def transition(self,state):
+                    #Specify the reachable states from 'state' and their rates.
+                    #A dictionary is easy here!
+                    rates = {}
+                    if self.m < state < self.M:
+                        rates[state+1] = self.uprate 
+                        rates[state-1] = self.downrate 
+                    elif state == self.m:
+                        rates[state+1] = self.uprate 
+                    elif state == self.M:
+                        rates[state-1] = self.downrate 
+                    return rates
+        
+        Now initialize the random walk and calculate the steady-state vector pi.
+        
+        ::
+        
+            mc = randomWalk(0,10)
+            mc.computePi()
+            mc.printPi()
+        
+        
+        The examples.py file shows also multi-dimensional random walks using the direct method. 
         
-        * States in the state space can be integers or integer vectors (1d numpy arrays). 
-        * The Markov chain can be a continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC). 
-        * At the moment, four different methods for calculating steady state distributions are included: 
-           * The power method,
-           * Linear algebra solver,
-           * The first left eigenvector, 
-           * Krylov subspace method.
-        * There are two alternative methods for obtaining the generator/transition matrix of the Markov chain: a direct and an indirect method.
-           * Both methods require the user to specify a transition function. 
-           * The indirect method requires only an initial state. 
-             * By repeatedly calling the transition function on unvisited states, reachable states are determined automatically. 
-             * The generator matrix is built up on the fly.
-           * The direct method requires a function that gives the state space on beforehand. 
-             * States are translated into unique codes that can be used to identify reachable states. 
-             * This has some computational and memory advantages for vector states.
-        * Memory consumption is reduced by using sparse matrices. 
-        * Checks are included to see whether all states in the Markov chain are connected.
 Keywords: Markov chain stochastic stationary steady-state
 Platform: UNKNOWN
 Classifier: Development Status :: 3 - Alpha
-Classifier: Intended Audience :: DevelopersIntended Audience :: EducationIntended Audience :: Science/ResearchTopic :: Scientific/Engineering :: Mathematics
+Classifier: Intended Audience :: Developers
+Classifier: Intended Audience :: Education
+Classifier: Intended Audience :: Science/ResearchTopic :: Scientific/Engineering :: Mathematics
 Classifier: License :: OSI Approved :: MIT License
-Classifier: Programming Language :: Python :: 2
-Classifier: Programming Language :: Python :: 2.6
 Classifier: Programming Language :: Python :: 2.7
-Classifier: Programming Language :: Python :: 3
-Classifier: Programming Language :: Python :: 3.3
-Classifier: Programming Language :: Python :: 3.4
 Classifier: Programming Language :: Python :: 3.5

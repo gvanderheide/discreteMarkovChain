@@ -4,13 +4,13 @@ This Python module based on numpy/scipy calculates the steady state distribution
 The module introduces the `markovChain` class which has the following features. 
 
 * States can be vectors or scalars.
-* Steady state distributions can be calculated for continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC). 
+* Steady state distributions can be calculated for continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC).
 * The generator/transition matrix of the Markov chain is derived automatically using an indirect or direct method.
 * The indirect method requires the user to specify an initial state and transition function (giving for each state the reachable states and their probabilities). 
-   *By repeatedly calling the transition function on unvisited states, the state space and the generator matrix are built up automatically.
-   *This is easy to implement!
+   * By repeatedly calling the transition function on unvisited states, the state space and the generator matrix are built up automatically.
+   * This is easy to implement!
 * The direct method requires the user to specify a transition function and a function that calculates the state space. 
-   *While more complex, it has some computational advantage for large state spaces consisting of vectors. 
+   * While more complex, it has some computational advantage for large state spaces consisting of vectors. 
 * The steady state distribution can be calculated by a method of choice: 
    * The power method,
    * Solving a system of linear equations,

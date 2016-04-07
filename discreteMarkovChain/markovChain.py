@@ -248,7 +248,7 @@ class markovChain(object):
         
         #First initialize state codes and the mapping with states. 
         self.setStateCodes()  
-       
+
         #For each state, calculate the indices of reached states and rates using the transition function.
         results  = imap(self.transitionStates, self.mapping.values())
 
@@ -262,8 +262,8 @@ class markovChain(object):
         for index,(col,rate) in enumerate(results): #more robust alternative: in izip(self.mapping.keys(),results)
             left = right
             right += len(col)
-            if right >= len(cols): #increase size if the vectors are too small.
-                new_capacity = right + self.size
+            if right >= len(cols):
+                new_capacity = right * 1.5  #increase the allocated memory if the vectors turn out to be too small.
                 cols.resize(new_capacity)
                 rates.resize(new_capacity)
                 rows.resize(new_capacity)

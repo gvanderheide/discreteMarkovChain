@@ -1,6 +1,6 @@
 discreteMarkovChain
 =======================
-While for statistical and scientific programming languages such as R various packages are available for analyzing Markov chains, equivalent packages in Python are rather scarce. This discreteMarkovChain package for Python addresses the problem of obtaining the steady state distribution of a Markov chain, also known as the stationary distribution, limiting distribution or an invariant measure. The package is for Markov chains with discrete and finite state spaces, which are most common. 
+While for statistical and scientific programming languages such as R various packages are available for analyzing Markov chains, equivalent packages in Python are rather scarce. This discreteMarkovChain package for Python addresses the problem of obtaining the steady state distribution of a Markov chain, also known as the stationary distribution, limiting distribution or invariant measure. The package is for Markov chains with discrete and finite state spaces, which are most commonly encountered in practice. 
 
 This package is based on numpy and scipy for efficient computations and limited use of resources. Markov chains with several million states can be solved. The package introduces the `markovChain` class which has the following features. 
 

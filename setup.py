@@ -16,7 +16,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 
 setup(
     name='discreteMarkovChain',
-    version='0.1',
+    version='0.11',
     description='Solve Markov chains with a discrete state space.',
     long_description=long_description,
     url='https://github.com/gvanderheide/discreteMarkovChain',
@@ -30,10 +30,14 @@ setup(
         'Intended Audience :: Science/Research'
         'Topic :: Scientific/Engineering :: Mathematics',
         'License :: OSI Approved :: MIT License',
+	'Programming Language :: Python',
+	'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
+	'Operating System :: OS Independent',
     ],
-    keywords='Markov chain stochastic stationary steady-state',
+    keywords='Markov chain stochastic stationary steady state',
     packages=find_packages(),
     install_requires=['numpy','scipy'],
 )

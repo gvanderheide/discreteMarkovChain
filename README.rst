@@ -97,7 +97,7 @@ Now we initialize the random walk with some values for `m` and `M` and calculate
     mc.computePi()
     mc.printPi()
 
-The stationary probabilities (not unexpectedly) are given below.
+The stationary probabilities are given below.
 
 ::
 
@@ -108,7 +108,7 @@ The stationary probabilities (not unexpectedly) are given below.
     4 0.166666666667
     5 0.166666666667
 
-We can do the same thing for a multi-dimensional random walk. Now we use the direct method. Here, we need to use numpy to define our transition function and we need to create the state space.
+Not unexpectedly, they are the same for each state. We can repeat this for a multi-dimensional random walk. Now we use the direct method. Here, we need to use a transition function returning numpy arrays and we need to define a function that calculates the state space.
 
 :: 
 
@@ -168,6 +168,6 @@ We could also solve much larger models. The example below has random walks in 5 
     mc = randomWalkNumpy(0,9,n=5)
     mc.computePi('power')
 
-On a computer from 2006, the rate matrix and pi are calculated within 10 seconds. 
+On a dual core computer from 2006, the rate matrix and `pi` can be calculated within 10 seconds. 
 
 

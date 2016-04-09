@@ -6,12 +6,12 @@ This package is based on numpy and scipy for efficient computations and limited 
 
 * States can be either integers or vectors of integers.
 * Steady state distributions can be calculated for continous time Markov chains (CTMC) as well as discrete time Markov chains (DTMC).
-* The user can either specify the probability/rate matrix of the Markov chain, or let the program do this automatically using either an indirect or direct method.
+* The user can either manually specify the probability/rate matrix of the Markov chain, or let the program do this automatically using an indirect or direct method.
 * The indirect method requires the user to specify an initial state and transition function (giving for each state the reachable states and their probabilities/rates). 
    * By repeatedly calling the transition function on unvisited states, the state space and the probability matrix are built up automatically.
    * This makes it easy to implement your own Markov chains!
 * The direct method requires the user to specify a transition function and a function that gives the complete state space. 
-   * While the implementation is typically more complex, this may have some computational advantage for large state spaces with vector states over de indirect method. 
+   * While the implementation is typically more complex, this may have some computational advantage over the indirect method for large state spaces with vector states.  
 * The steady state distribution can be calculated by a method of choice: 
    * The power method,
    * Solving a system of linear equations,

@@ -5,7 +5,7 @@ Possible additions:
 """
 from __future__ import print_function
 import numpy as np
-from scipy.sparse import coo_matrix, csgraph, eye, vstack
+from scipy.sparse import coo_matrix,csr_matrix, csgraph, eye, vstack, isspmatrix, isspmatrix_csr
 from scipy.sparse.linalg import eigs, gmres, spsolve
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
@@ -48,19 +48,16 @@ class markovChain(object):
     Steady state distributions can be calculated using various techniques. 
     This includes the power method, using a linear algebra solver, finding the first eigenvector, and searching in Krylov space.
     """    
-    def __init__(self,direct=True,method='power'):
+    def __init__(self,P=None,direct=False):
         """ 
-        By default, use the direct method combined with the power method.
+        By default, use the indirect method combined with the power method.
         The indirect method is called with direct=False
         """
+        self.P              = P
         self.direct         = direct  
         self.pi             = None #steady state probability vector
         self.mapping        = {}   #mapping used to identify states
-        self.initialState   = None #a dummy initial state
-        
-        methodSet = ['power','eigen','linear','krylov']
-        assert method in methodSet, "Incorrect method specified. Choose from %r" % methodSet
-        self.method         = method         
+        self.initialState   = None #a dummy initial state             
         
     @property
     def size(self):
@@ -293,7 +290,8 @@ class markovChain(object):
         rowSums             = Q.sum(axis=1).getA1()
         l                   = np.max(rowSums)*1.001
         diagonalElements    = 1.-rowSums/l
-        Qdiag               = coo_matrix((diagonalElements,(np.arange(self.size),np.arange(self.size))),shape=(self.size,self.size)).tocsr()
+        idxRange            = np.arange(Q.shape[0])
+        Qdiag               = coo_matrix((diagonalElements,(idxRange,idxRange)),shape=Q.shape).tocsr()
         return Qdiag+Q.multiply(1./l)
 
     def assertSingleClass(self,P):
@@ -306,29 +304,41 @@ class markovChain(object):
            
     def getTransitionMatrix(self,probabilities=True):
         """
-        Depending on whether the iterative method it chosen, calculate the generator matrix Q of the Markov chain
-        Since most methods use stochastic matrices, by default we return a stochastic matrix
+        If self.P has been given already, we will reuse it and convert it to a sparse csr matrix if needed.
+        Otherwise, we will generate it using the direct or indirect method.         
+        Since most solution methods use stochastic matrices, by default we return a probability matrix.
+        By setting probabilities=False we can also return a rate matrix.
         """
-        if self.direct == True:
-            P = self.directInitialMatrix()
+        if self.P is not None:               
+            if isspmatrix(self.P): 
+                if not isspmatrix_csr(self.P):
+                    self.P = self.P.tocsr() 
+            else:
+                assert isinstance(self.P, np.ndarray) and self.P.ndim==2 and self.P.shape[0]==self.P.shape[1],'P needs to be a 2d numpy array with an equal number of columns and rows'                     
+                self.P = csr_matrix(self.P)   
+                
+        elif self.direct == True:
+            self.P = self.directInitialMatrix()
+            
         else:
-            P = self.indirectInitialMatrix(self.initialState)             
-            
+            self.P = self.indirectInitialMatrix(self.initialState)   
+
         if probabilities:    
-            P = self.convertToProbabilityMatrix(P)
+            P = self.convertToProbabilityMatrix(self.P)
         else: 
-            P = self.convertToRateMatrix(P)
-            
+            P = self.convertToRateMatrix(self.P)
+        
         self.assertSingleClass(P)    
         
         return P
                      
-    def power(self, tol = 1e-8, numIter = 1e5):
+    def powerMethod(self, tol = 1e-8, numIter = 1e5):
         """
         Carry out the power method. Repeatedly take the dot product to obtain pi.
         """
         P = self.getTransitionMatrix().T #take transpose now to speed up dot product.
-        pi = np.zeros(self.size);  pi1 = np.zeros(self.size)
+        size = P.shape[0]        
+        pi = np.zeros(size);  pi1 = np.zeros(size)
         pi[0] = 1;
         n = norm(pi - pi1,1); i = 0;
         while n > tol and i < numIter:
@@ -337,21 +347,22 @@ class markovChain(object):
             n = norm(pi - pi1,1); i += 1
         self.pi = pi
 
-    def eigen(self, tol = 1e-8, numIter = 1e5):  
+    def eigenMethod(self, tol = 1e-8, numIter = 1e5):  
         """
         Determines the eigenvector corresponding to the first eigenvalue.
         The speed of convergence depends heavily on the choice of the initial guess for pi.
         For now, we let the initial pi be a vector of ones.
         """
         Q = self.getTransitionMatrix(probabilities=False)
-        guess = np.ones(self.size,dtype=float)
+        size = Q.shape[0]
+        guess = np.ones(size,dtype=float)
         w, v = eigs(Q.T, k=1, v0=guess, sigma=1e-6, which='LM',tol=tol, maxiter=numIter)
         pi = v[:, 0].real
         pi /= pi.sum()
         
         self.pi = pi
         
-    def linear(self): 
+    def linearMethod(self): 
         """
         Here we use the standard linear algebra solver to obtain pi from a system of linear equations. 
         The first equation isreplaced by the normalizing condition.
@@ -359,23 +370,25 @@ class markovChain(object):
         Code due to http://stackoverflow.com/questions/21308848/
         """
         P       = self.getTransitionMatrix()
-        dP      = P - eye(self.size)
-        A       = vstack([np.ones(self.size), dP.T[1:,:]]).tocsr()
-        rhs     = np.zeros((self.size,))
+        size    = P.shape[0]
+        dP      = P - eye(size)
+        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()
+        rhs     = np.zeros((size,))
         rhs[0]  = 1
         
         self.pi = spsolve(A, rhs)
 
-    def krylov(self,tol=1e-8): 
+    def krylovMethod(self,tol=1e-8): 
         """
         Here we use the 'gmres' solver for the system of linear equations. 
         It searches in Krylov subspace for a vector with minimal residual. 
         Code due to http://stackoverflow.com/questions/21308848/
         """
         P       = self.getTransitionMatrix()
-        dP      = P - eye(self.size)
-        A       = vstack([np.ones(self.size), dP.T[1:,:]]).tocsr()
-        rhs     = np.zeros((self.size,))
+        size    = P.shape[0]
+        dP      = P - eye(size)
+        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()
+        rhs     = np.zeros((size,))
         rhs[0]  = 1
                 
         pi, info = gmres(A, rhs, tol=tol)
@@ -383,11 +396,14 @@ class markovChain(object):
             raise RuntimeError("gmres did not converge")
         self.pi = pi
         
-    def computePi(self):
+    def computePi(self,method='power'):
         """
         Calculate the steady state distribution using the preferred method.
         """
-        return getattr(self,self.method)()
+        methodSet = ['power','eigen','linear','krylov']
+        assert method in methodSet, "Incorrect method specified. Choose from %r" % methodSet
+        method = method + 'Method'         
+        return getattr(self,method)()
 
     def printPi(self):
         """

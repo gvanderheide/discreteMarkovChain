@@ -277,7 +277,8 @@ class markovChain(object):
         We make all rows in Q sum to zero by subtracting the row sums from the diagonal.
         """
         rowSums             = Q.sum(axis=1).getA1()
-        Qdiag               = coo_matrix((rowSums,(np.arange(self.size),np.arange(self.size))),shape=(self.size,self.size)).tocsr()
+        idxRange            = np.arange(Q.shape[0])
+        Qdiag               = coo_matrix((rowSums,(idxRange,idxRange)),shape=Q.shape).tocsr()
         return Q-Qdiag
 
     def convertToProbabilityMatrix(self, Q):
@@ -285,7 +286,7 @@ class markovChain(object):
         Converts the initial matrix to a probability matrix
         We calculate P = I + Q/l, with l the largest diagonal element.
         Even if Q is already a probability matrix, this step helps for numerical stability. 
-        By adding a small probability on the diagional (0.001), periodicity can be prevented.
+        By adding a small probability on the diagonal (0.001), periodicity can be prevented.
         """
         rowSums             = Q.sum(axis=1).getA1()
         l                   = np.max(rowSums)*1.001

@@ -1,7 +1,7 @@
 """ 
-Possible additions:
+Possible fixes:
 -Check that the state codes do not suffer from integer overflow.
--Determine whether the transition function leads to an infinite state space.
+-Improve memory usage.
 """
 from __future__ import print_function
 import numpy as np
@@ -14,44 +14,32 @@ try: #For python 3 functionality.
 except ImportError:
     imap = map
 
-def uniqueStates(states,rates):
+class markovChain(object): 
     """
-    Returns unique states and sums up the corresponding rates.
-    States should be a 2d numpy array with on each row a state, and rates a 1d numpy array with length equal to the number of rows in states.      
+    A class for calculating the steady state distribution of a Markov chain with a finite and discrete state space.
+    The Markov chain can be defined on continuous time or discrete time and states can be integers or vectors of integers.
     
-    This may be helpful in the transition function for summing up the rates of different transitions that lead to the same state            
-    """        
-    order     = np.lexsort(states.T)
-    states    = states[order]
-    diff      = np.ones(len(states), 'bool')
-    diff[1:]  = (states[1:] != states[:-1]).any(-1)
-    sums      = np.bincount(diff.cumsum() - 1, rates[order])
-    return states[diff], sums
-
-class markovChain(object):
+    If the transition matrix `P` is specified, we use that for calculating the steady-state distribution.
+    Otherwise, we derive `P` automatically using an indirect or a direct method. 
+    Both methods require `self.transition()` to be defined, calculating for each state the reachable states and corresponding rates/probabilities.
+    
+    For the indirect method the user needs to specify an initial state, `self.initialState`.
+    By repeatedly calling the transition function on unvisited states, all reachable states are determined starting from this initial state.
+    For the direct method the function `self.statespace()` is required, giving the complete state space in a 2d numpy array. 
+    We build up `P` by calling `self.transition()` on each state in the statespace.
+        
+    Steady state distributions can be calculated by calling `self.computePi()` with a method of choice.
     """
-    This class calculates the steady state distribution for a Markov chain with a finite and discrete state space.
-    The Markov chain can be defined on continuous time or discrete time.
-    A state can be represented as an integer number or a vector consisting of integer numbers.
-    
-    There are two ways to build the generator matrix of the Markov chain: direct and indirect.
-    For both ways, the user needs to a transition function that calculates for each state the reachable states and the corresponding rates.
-       
-    For the direct method the user needs to generate the statespace in advance. 
-    States in the statespace are translated into unique codes, which can be used to identify the indices of new states.
-    These indices are used to construct the sparse generator matrix.
-     
-    For the indirect method the user needs to specify an initial state.
-    By repeatedly calling the transition function, all reachable states are determined starting from this initial state.
-    On the fly, we construct the sparse generator matrix of the Markov chain.
-
-    Steady state distributions can be calculated using various techniques. 
-    This includes the power method, using a linear algebra solver, finding the first eigenvector, and searching in Krylov space.
-    """    
     def __init__(self,P=None,direct=False):
-        """ 
-        By default, use the indirect method combined with the power method.
-        The indirect method is called with direct=False
+        """  
+        Initializes the Markov chain object and its main attributes: `self.P`, `self.pi`, `self.mapping` and `self.initialState`.
+        
+        Parameters
+        ----------
+        P : ndarray 
+            Optional argument. The transition matrix of the Markov chain. Needs to have an equal number of columns and rows. Can be sparse or dense. 
+        direct : bool
+            Specifies whether the indirect method is used or the direct method in case `P` is not defined. By default, `direct=False`.
         """
         self.P              = P
         self.direct         = direct  
@@ -62,7 +50,7 @@ class markovChain(object):
     @property
     def size(self):
         """ 
-        Return the number of states in the state space
+        Return the number of states in the state space, if `self.mapping` is defined.
         """
         return len(self.mapping)
        

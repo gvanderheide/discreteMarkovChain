@@ -10,8 +10,8 @@ class randomWalk(markovChain):
         self.initialState = m
         self.m = m
         self.M = M
-        self.uprate = 0.5
-        self.downrate = 0.5    
+        self.uprate = 1.0
+        self.downrate = 1.0   
         
     def transition(self,state):
         #Using a dictionary here is quite simple! 
@@ -34,8 +34,8 @@ class randomWalkMulti(markovChain):
         self.n = n
         self.m = m
         self.M = M
-        self.uprate = 0.5
-        self.downrate = 0.5 
+        self.uprate = 1.0
+        self.downrate = 1.0 
         
     def tupleAdd(self,state,i,b):
         #add amount 'b' to entry 'i' of tuple 'state'.
@@ -66,8 +66,8 @@ class randomWalkNumpy(markovChain):
         self.n = n
         self.m = m
         self.M = M
-        self.uprate = 0.5
-        self.downrate = 0.5        
+        self.uprate = 1.0
+        self.downrate = 1.0       
         
         #Useful to define for the transition function.
         self.events = np.vstack((np.eye(n,dtype=int),-np.eye(n,dtype=int)))

@@ -55,11 +55,11 @@ We get the following steady state probabilities:
 [ 0.54545455  0.45454545]
 ```
 
-Now we show an example of a one-dimensional random walk in continuous time between integers `m` and `M`. We move up and down with rates 0.5. We will use the indirect method to determine the rate matrix for us automatically. The indirect method is rather flexible, and allows the transition function to return a dictionary with reachable states and rates. We first introduce our `randomWalk` class. 
+Now we show an example of a one-dimensional random walk in continuous time between integers `m` and `M`. We move up and down with rates 1. We will use the indirect method to determine the rate matrix for us automatically. The indirect method is rather flexible, and allows the transition function to return a dictionary with reachable states and rates. We first introduce our `randomWalk` class. 
 
 ```python
 class randomWalk(markovChain):
-    #A random walk where we move up and down with rate 0.5 in each state between bounds m and M.
+    #A random walk where we move up and down with rate 1.0 in each state between bounds m and M.
     #For the transition function to work well, we define some class variables in the __init__ function.
     def __init__(self,m,M):
         super(randomWalk, self).__init__() #always use this as first line when creating your own __init__ 

@@ -66,8 +66,8 @@ class randomWalk(markovChain):
         self.initialState = m
         self.m = m
         self.M = M
-        self.uprate = 0.5
-        self.downrate = 0.5
+        self.uprate = 1.0
+        self.downrate = 1.0
     
     def transition(self,state):
         #Specify the reachable states from state and their rates.
@@ -115,28 +115,34 @@ class randomWalkNumpy(markovChain):
         self.n = n
         self.m = m
         self.M = M
-        self.uprate = 0.5
-        self.downrate = 0.5        
+        self.uprate = 1.0
+        self.downrate = 1.0        
     
-        #Useful to define for the transition function.
+        #It is useful to define the variable 'events' for the the transition function.
+        #The possible events are 'move up' or 'move down' in one of the random walks.
+        #The rates of these events are given in 'eventRates'.
         self.events = np.vstack((np.eye(n,dtype=int),-np.eye(n,dtype=int)))
         self.eventRates = np.array([self.uprate]*n+[self.downrate]*n)  
     
     def transition(self,state):
-        up = state < self.M
+        #First check for the current state which of the 'move up' and 'move down' events are possible. 
+        up = state < self.M 
         down = state > self.m
-        possibleEvents = np.concatenate((up,down))
+        possibleEvents = np.concatenate((up,down)) #Combine into one boolean array. 
+        
+        #The possible states after the transition follow by adding the possible 'move up'/'move down' events to the current state.
         newstates = state+self.events[possibleEvents]
         rates = self.eventRates[possibleEvents]
         return newstates,rates   
         
     def statespace(self):
+        #Each random walk can be in a state between m and M, so the state space is the cartesian product of these ranges. 
         minvalues = [self.m]*self.n
         maxvalues = [self.M]*self.n
         return np.array([i for i in product(*(list(range(i,j+1)) for i,j in zip(minvalues,maxvalues)))],dtype=int)  
 ```
 
-Now we initialize 2 random walks between 0 and 2 and print the stationary distribution.
+Now we initialize `n=2` random walks between `m=0` and `M=2` and print the stationary distribution.
 
 ```python
 mc = randomWalkNumpy(0,2,n=2)

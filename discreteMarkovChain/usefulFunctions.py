@@ -30,7 +30,7 @@ def number_of_partitions(max_range, max_sum):
             arr[j:,i] += arr[:M-j,i+1] 
     return arr.sum(axis = 0)
 
-def partition(max_range, max_sum, out = None, n_part = None):
+def partition_zero(max_range, max_sum, out = None, n_part = None):
     '''
     Function that can be helpful for obtaining the state space of a discrete Markov chain or Markov decision processes. 
     Returns a 2d-array with on the rows all possible partitions of the ranges `0,...,max_range[j]` that add up to at most `max_sum`.
@@ -53,7 +53,7 @@ def partition(max_range, max_sum, out = None, n_part = None):
     -------
     >>> max_range=np.array([1,3,2])    
     >>> max_sum = 3    
-    >>> partition(max_range,max_sum)    
+    >>> partition_zero(max_range,max_sum)    
     array([[0, 0, 0],
            [0, 0, 1],
            [0, 0, 2],
@@ -79,7 +79,7 @@ def partition(max_range, max_sum, out = None, n_part = None):
         out[:] = np.arange(min(max_range[0],max_sum) + 1, dtype = int).reshape(-1,1)
         return out
 
-    P = partition(max_range[1:], max_sum, out=out[:n_part[1],1:], n_part = n_part[1:])        
+    P = partition_zero(max_range[1:], max_sum, out=out[:n_part[1],1:], n_part = n_part[1:])        
 
     S = np.minimum(max_sum - P.sum(axis = 1), max_range[0])
     offset, sz  = 0, S.size
@@ -90,4 +90,53 @@ def partition(max_range, max_sum, out = None, n_part = None):
         out[offset:offset+sz, 0] = i
         out[offset:offset+sz, 1:] = P[ind]
         S[ind] -= 1
+    return out
+
+def partition(min_range,max_range,max_sum=None):
+    '''
+    Function that can be helpful for obtaining the state space of a discrete Markov chain or Markov decision processes. 
+    Returns a 2d-array with on the rows all possible partitions of the ranges `min_range[j],...,max_range[j]` for each j. 
+    If the argument `max_sum` is specified, the numbers will add up to at most `max_sum`
+    
+    Parameters
+    ----------
+    min_range : array or list of ints
+        `min_range[j]` gives the minimum value for element `j` in the output array. 
+    max_range : array or list of ints
+        `max_range[j]` gives the maximum value for element `j` in the output array. 
+    max_sum : int
+        Optional argument. The maximum sum for each partition in the output array. 
+       
+    Returns
+    -------
+    out : array
+        2d array with all possible partitions of the ranges `min_range[j],...,max_range[j]` summing up to at most `max_sum`.
+        
+    Example
+    -------
+    >>> min_range=np.array([1,2,1])
+    >>> max_range=np.array([2,4,3])    
+    >>> max_sum = 6    
+    >>> partition(min_range,max_range,max_sum)    
+    array([[1, 2, 1],
+           [1, 2, 2],
+           [1, 2, 3],
+           [1, 3, 1],
+           [1, 3, 2],
+           [1, 4, 1],
+           [2, 2, 1],
+           [2, 2, 2],          
+           [2, 3, 1]])
+    '''
+    max_range = np.asarray(max_range, dtype = int).ravel()
+    min_range = np.asarray(min_range, dtype = int).ravel()
+    full_range = max_range-min_range
+    if any(full_range<0):
+        raise ValueError("max_range needs to be larger than min_range")
+    if max_sum == None:
+        max_sum = np.sum(full_range)
+    else:
+        max_sum -= np.sum(min_range)
+    out = partition_zero(full_range,max_sum)
+    out += min_range
     return out

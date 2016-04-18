@@ -29,6 +29,20 @@ class markovChain(object):
     We build up `P` by calling `self.transition()` on each state in the statespace.
         
     Steady state distributions can be calculated by calling `self.computePi()` with a method of choice.
+
+    Attributes
+    ----------
+    pi : the steady state distribution.
+    mapping : a dictionary with keys the indices of the state and values the states. 
+    size : the size of the state space.
+    P : sparse transition/rate matrix.
+    initialState : state from which to start the indirect method.
+    direct : boolean indicating whether 
+    
+    Methods
+    -------
+    krylovMethod : the krylov subspace method.
+    
     """
     def __init__(self,P=None,direct=False):
         """  
@@ -40,6 +54,14 @@ class markovChain(object):
             Optional argument. The transition matrix of the Markov chain. Needs to have an equal number of columns and rows. Can be sparse or dense. 
         direct : bool
             Specifies whether the indirect method is used or the direct method in case `P` is not defined. By default, `direct=False`.
+        
+        Example
+        --------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.computePi('power') #alternative: 'linear','eigen' or 'krylov'.   
+        >>> print(mc.pi)
+        [ 0.54545455  0.45454545]
         """
         self.P              = P
         self.direct         = direct  
@@ -66,7 +88,7 @@ class markovChain(object):
         To be provided by the subclass. 
         Return a 2d numpy array with reachable states and a 1d numpy array with transition rates.
         For the iterative method, it is also allowed to return a dictionary where the keys are tuples with the state and the values are the transition rates.
-        It is preferred to return unique states (for the iterative method, the returned states MUST be unique).
+        Ensure that unique states are returned.
         """
         raise NotImplementedError('Implement the function transition() in the subclass')  
 
@@ -87,7 +109,6 @@ class markovChain(object):
             initialState = int(initialState) if len(initialState)==1 else tuple(initialState) 
 
         return initialState
-
 
     def checkTransitionType(self,state):
         """
@@ -114,7 +135,7 @@ class markovChain(object):
     
     def convertToTransitionDict(self,transitions):
         """
-        If numpy is used, then this turns the output from transition() into a dict.  
+        If numpy is used, then this converts the output from transition() into a dict.  
         """  
         states,rates = transitions
         rateDict = defaultdict(float)
@@ -128,7 +149,7 @@ class markovChain(object):
     
     def indirectInitialMatrix(self, initialState):
         """
-        Given some initial state, this code iteratively determines new states.
+        Given some initial state, this iteratively determines new states.
         We repeatedly call the transition function on unvisited states in the frontier set.
         Each newly visited state is put in a dictionary called 'mapping' and the rates are stored in a dictionary.
         """
@@ -295,7 +316,7 @@ class markovChain(object):
         """
         If self.P has been given already, we will reuse it and convert it to a sparse csr matrix if needed.
         Otherwise, we will generate it using the direct or indirect method.         
-        Since most solution methods use stochastic matrices, by default we return a probability matrix.
+        Since most solution methods use a probability matrix, this is the default setting. 
         By setting probabilities=False we can also return a rate matrix.
         """
         if self.P is not None:               
@@ -387,7 +408,24 @@ class markovChain(object):
         
     def computePi(self,method='power'):
         """
-        Calculate the steady state distribution using the preferred method.
+        Calculate the steady state distribution using your preferred method. By default uses the most robust method, 'power'.
+        
+       
+        ['power','eigen','linear','krylov'].
+        
+        Example
+        -------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.computePi('power') 
+        >>> print(mc.pi)
+        
+        See Also
+        --------
+        :func:`powerMethod`
+        :func:`eigenMethod`
+        :func:`linearMethod`
+        :func:`krylovMethod`        
         """
         methodSet = ['power','eigen','linear','krylov']
         assert method in methodSet, "Incorrect method specified. Choose from %r" % methodSet
@@ -399,6 +437,8 @@ class markovChain(object):
         Prints all states state and their steady state probabilities.
         Not recommended for large state spaces.
         """
-        if self.pi is not None:
-            for key,state in self.mapping.items():
-                print(state,self.pi[key])
+        assert self.pi is not None, "Calculate pi before calling printPi()"
+        assert len(self.mapping)>0, "printPi() can only be used in combination with the direct or indirect method. Use print(mc.pi) if your subclass is called mc."        
+        for key,state in self.mapping.items():
+            print(state,self.pi[key])
+

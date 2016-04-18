@@ -1,7 +1,7 @@
 from __future__ import print_function
 import numpy as np
-from itertools import product
 from markovChain import markovChain
+from usefulFunctions import partition
 
 class randomWalk(markovChain):
     #A random walk where we move up and down with rate 0.5 in each state between bounds m and M.
@@ -82,13 +82,13 @@ class randomWalkNumpy(markovChain):
         return newstates,rates   
         
     def statespace(self):
-        minvalues = [self.m]*self.n
-        maxvalues = [self.M]*self.n
-        return np.array([i for i in product(*(list(range(i,j+1)) for i,j in zip(minvalues,maxvalues)))],dtype=int)  
+        #Partition gives all partitions of integers between min_range and max_range.
+        min_range = [self.m]*self.n
+        max_range = [self.M]*self.n
+        return partition(min_range,max_range) 
         
 if __name__ == '__main__': 
-    import time
-    
+    import time    
 
     P = np.array([[0.5,0.5],[0.6,0.4]])
     mc = markovChain(P)

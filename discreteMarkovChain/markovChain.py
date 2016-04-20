@@ -19,50 +19,64 @@ class markovChain(object):
     A class for calculating the steady state distribution of a Markov chain with a finite and discrete state space.
     The Markov chain can be defined on continuous time or discrete time and states can be integers or vectors of integers.
     
-    If the transition matrix `P` is specified, we use that for calculating the steady-state distribution.
-    Otherwise, we derive `P` automatically using an indirect or a direct method. 
-    Both methods require `self.transition()` to be defined, calculating for each state the reachable states and corresponding rates/probabilities.
+    If the transition matrix ``P`` is specified, we use that for calculating the steady-state distribution.
+    Otherwise, we derive ``P`` automatically using an indirect or a direct method. 
+    Both methods require :func:`transition` to be defined, calculating for each state the reachable states and corresponding rates/probabilities.
     
-    For the indirect method the user needs to specify an initial state, `self.initialState`.
+    For the indirect method the user needs to specify an initial state, ``initialState``.
     By repeatedly calling the transition function on unvisited states, all reachable states are determined starting from this initial state.
-    For the direct method the function `self.statespace()` is required, giving the complete state space in a 2d numpy array. 
-    We build up `P` by calling `self.transition()` on each state in the statespace.
+    For the direct method the function :func:`statespace` is required, giving the complete state space in a 2d numpy array. 
+    We build up ``P`` by calling :func:`transition` on each state in the statespace.
         
-    Steady state distributions can be calculated by calling `self.computePi()` with a method of choice.
+    Steady state distributions can be calculated by calling :func:`computePi` with a method of choice.
 
+    Parameters
+    ----------
+    P : array(float,ndim=2), optional(default=None)
+        Optional argument. The transition matrix of the Markov chain. Needs to have an equal number of columns and rows. Can be sparse or dense. 
+    direct : bool, optional(default=False)
+        Specifies whether the indirect method is used or the direct method in case ``P`` is not defined. By default, ``direct=False``.
+    
     Attributes
     ----------
-    pi : the steady state distribution.
-    mapping : a dictionary with keys the indices of the state and values the states. 
-    size : the size of the state space.
-    P : sparse transition/rate matrix.
-    initialState : state from which to start the indirect method.
-    direct : boolean indicating whether 
+    pi : array(float)
+        the steady state probabilities for each state in the state space.    
+    mapping : dict
+        the keys are the indices of the states in ``P`` and ``pi``,  the values are the states. Useful only when using the direct/indirect method.    
+    size : int
+        the size of the state space.    
+    P : scipy.sparse.csr_matrix
+        the sparse transition/rate matrix.    
+    initialState : int or array_like(int)
+        state from which to start the indirect method. Should be provided in the subclass by the user.  
     
     Methods
     -------
-    krylovMethod : the krylov subspace method.
+    transition(state)
+        transition function of the Markov chain, returning the reachable states from `state` and their probabilities/rates. Should be be provided in the subclass by the user.
+    statespace()
+        returns the state space of the Markov chain. Should be be provided in the subclass by the user.
+    computePi(method='power') 
+        call with 'power','linear','eigen' or 'krylov' to use a certain method for obtaining ``pi``.
+    linearMethod() 
+        use :func:`spsolve`, the standard linear algebra solver for sparse matrices, to obtain ``pi``.
+    powerMethod(tol=1e-8,numIter=1e5) 
+        use repeated multiplication of the transition matrix to obtain ``pi``.
+    eigenMethod(tol=1e-8,numIter=1e5)  
+        search for the first left eigenvalue to  obtain ``pi``.
+    krylovMethod(tol=1e-8)    
+        search for ``pi`` in Krylov subspace using the :func:`gmres` procedure for sparse matrices.
+
+    Example
+    -------
+    >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+    >>> mc = markovChain(P)
+    >>> mc.computePi('power') #alternative: 'linear','eigen' or 'krylov'.   
+    >>> print(mc.pi)
+    [ 0.54545455  0.45454545]
     
     """
     def __init__(self,P=None,direct=False):
-        """  
-        Initializes the Markov chain object and its main attributes: `self.P`, `self.pi`, `self.mapping` and `self.initialState`.
-        
-        Parameters
-        ----------
-        P : ndarray 
-            Optional argument. The transition matrix of the Markov chain. Needs to have an equal number of columns and rows. Can be sparse or dense. 
-        direct : bool
-            Specifies whether the indirect method is used or the direct method in case `P` is not defined. By default, `direct=False`.
-        
-        Example
-        --------
-        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
-        >>> mc = markovChain(P)
-        >>> mc.computePi('power') #alternative: 'linear','eigen' or 'krylov'.   
-        >>> print(mc.pi)
-        [ 0.54545455  0.45454545]
-        """
         self.P              = P
         self.direct         = direct  
         self.pi             = None #steady state probability vector
@@ -338,7 +352,7 @@ class markovChain(object):
         else: 
             P = self.convertToRateMatrix(self.P)
         
-        self.assertSingleClass(P)    
+        self.assertSingleClass(P) #Maybe this should be skipped on a next run?   
         
         return P
                      
@@ -408,10 +422,13 @@ class markovChain(object):
         
     def computePi(self,method='power'):
         """
-        Calculate the steady state distribution using your preferred method. By default uses the most robust method, 'power'.
+        Calculate the steady state distribution using your preferred method and store it in the attribute `pi`. 
+        By default uses the most robust method, 'power'. Other methods are 'eigen','linear', and 'krylov'
         
-       
-        ['power','eigen','linear','krylov'].
+        Parameters
+        ----------
+        method : string
+            Optional parameter. Choose from 'power','eigen','linear','krylov'. 
         
         Example
         -------
@@ -422,10 +439,11 @@ class markovChain(object):
         
         See Also
         --------
-        :func:`powerMethod`
-        :func:`eigenMethod`
-        :func:`linearMethod`
-        :func:`krylovMethod`        
+        For details about the specific methods see
+        :func:`powerMethod`,
+        :func:`eigenMethod`,
+        :func:`linearMethod`, and
+        :func:`krylovMethod` .       
         """
         methodSet = ['power','eigen','linear','krylov']
         assert method in methodSet, "Incorrect method specified. Choose from %r" % methodSet

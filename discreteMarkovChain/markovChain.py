@@ -9,6 +9,8 @@ from scipy.sparse import coo_matrix,csr_matrix, csgraph, eye, vstack, isspmatrix
 from scipy.sparse.linalg import eigs, gmres, spsolve
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
+from warnings import warn
+
 try: #For python 3 functionality.
     from itertools import imap
 except ImportError:
@@ -19,15 +21,21 @@ class markovChain(object):
     A class for calculating the steady state distribution of a Markov chain with a finite and discrete state space.
     The Markov chain can be defined on continuous time or discrete time and states can be integers or vectors of integers.
     
-    If the transition matrix ``P`` is specified, we use that for calculating the steady-state distribution.
+    Summary
+    -------
+    If the transition matrix ``P`` is specified by the user, we use that for calculating the steady-state distribution.
     Otherwise, we derive ``P`` automatically using an indirect or a direct method. 
-    Both methods require :func:`transition` to be defined, calculating for each state the reachable states and corresponding rates/probabilities.
     
-    For the indirect method the user needs to specify an initial state, ``initialState``.
+    Both the indirect and direct method require the function :func:`transition` to be defined within the class, calculating for each state the reachable states and corresponding rates/probabilities.
+    Implementing this function is similar in difficulty as constructing ``P`` manually, since when you construct ``P`` you also have to determine where you can go from any given state. 
+    
+    For the indirect method the user needs to specify an initial state in the class attribute ``initialState``.
     By repeatedly calling the transition function on unvisited states, all reachable states are determined starting from this initial state.
+
     For the direct method the function :func:`statespace` is required, giving the complete state space in a 2d numpy array. 
-    We build up ``P`` by calling :func:`transition` on each state in the statespace.
-        
+    We build up ``P`` by calling :func:`transition` on each state in the statespace.  
+
+            
     Steady state distributions can be calculated by calling :func:`computePi` with a method of choice.
 
     Parameters
@@ -40,32 +48,35 @@ class markovChain(object):
     Attributes
     ----------
     pi : array(float)
-        the steady state probabilities for each state in the state space.    
+        The steady state probabilities for each state in the state space.    
     mapping : dict
-        the keys are the indices of the states in ``P`` and ``pi``,  the values are the states. Useful only when using the direct/indirect method.    
+        The keys are the indices of the states in ``P`` and ``pi``,  the values are the states. Useful only when using the direct/indirect method.    
     size : int
-        the size of the state space.    
+        The size of the state space.    
     P : scipy.sparse.csr_matrix
-        the sparse transition/rate matrix.    
+        The sparse transition/rate matrix.    
     initialState : int or array_like(int)
-        state from which to start the indirect method. Should be provided in the subclass by the user.  
+        State from which to start the indirect method. Should be provided in the subclass by the user.  
     
     Methods
     -------
     transition(state)
-        transition function of the Markov chain, returning the reachable states from `state` and their probabilities/rates. Should be be provided in the subclass by the user.
+        Transition function of the Markov chain, returning the reachable states from `state` and their probabilities/rates. 
+        Should be be provided in the subclass by the user when using the indirect/direct method.
     statespace()
-        returns the state space of the Markov chain. Should be be provided in the subclass by the user.
+        Returns the state space of the Markov chain. Should be be provided in the subclass by the user when using the direct method.
     computePi(method='power') 
-        call with 'power','linear','eigen' or 'krylov' to use a certain method for obtaining ``pi``.
+        Call with 'power','linear','eigen' or 'krylov' to use a certain method for obtaining ``pi``.
+    printPi() 
+        Print all states and their corresponding steady state probabilities. Not recommended for large state spaces.
     linearMethod() 
-        use :func:`spsolve`, the standard linear algebra solver for sparse matrices, to obtain ``pi``.
+        Use :func:`spsolve`, the standard linear algebra solver for sparse matrices, to obtain ``pi``.
     powerMethod(tol=1e-8,numIter=1e5) 
-        use repeated multiplication of the transition matrix to obtain ``pi``.
+        Use repeated multiplication of the transition matrix to obtain ``pi``.
     eigenMethod(tol=1e-8,numIter=1e5)  
-        search for the first left eigenvalue to  obtain ``pi``.
+        Search for the first left eigenvalue to  obtain ``pi``.
     krylovMethod(tol=1e-8)    
-        search for ``pi`` in Krylov subspace using the :func:`gmres` procedure for sparse matrices.
+        Search for ``pi`` in Krylov subspace using the :func:`gmres` procedure for sparse matrices.
 
     Example
     -------
@@ -86,14 +97,14 @@ class markovChain(object):
     @property
     def size(self):
         """ 
-        Return the number of states in the state space, if `self.mapping` is defined.
+        Return the number of states in the state space, if ``self.mapping`` is defined.
         """
         return len(self.mapping)
        
     def statespace(self):
         """
         To be provided by the subclass. Return the state space
-        in an integer 2d numpy array with a state on each row.
+        in an integer 2d numpy array with a state on each row. 
         """
         raise NotImplementedError('Implement the function statespace() in the subclass')    
 
@@ -321,7 +332,7 @@ class markovChain(object):
     def assertSingleClass(self,P):
         """ 
         Check whether the rate/probability matrix consists of a single connected class.
-        Otherwise, the steady state distribution is not well defined.
+        If this is not the case, the steady state distribution is not well defined.
         """
         components, _ = csgraph.connected_components(P, directed=True, connection='weak')   
         assert components==1, "The Markov chain has %r communicating classes. Make sure there is a single communicating class." %components
@@ -356,31 +367,82 @@ class markovChain(object):
         
         return P
                      
-    def powerMethod(self, tol = 1e-8, numIter = 1e5):
+    def powerMethod(self, tol = 1e-8, maxiter = 1e5):
         """
-        Carry out the power method. Repeatedly take the dot product to obtain pi.
+        Carry out the power method and store the result in the class attribute ``pi``. 
+        Repeatedly takes the dot product between ``P`` and ``pi`` until the norm is smaller than the prespecified tolerance ``tol``.
+          
+        Parameters
+        ----------
+        tol : float, optional(default=1e-8)
+            Tolerance level for the precision of the end result. A lower tolerance leads to more accurate estimate of ``pi``.
+        maxiter : int, optional(default=1e5)
+            The maximum number of power iterations to be carried out.            
+        
+        Example
+        -------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.powerMethod()
+        >>> print(mc.pi) 
+        [ 0.54545455  0.45454545]
+        
+        Remarks
+        -------
+        The power method is robust even when state space becomes large (more than 500.000 states), whereas the other methods may have some issues with memory or convergence.
+        The power method may converge slowly for Markov chains where states are rather disconnected. That is, when the expected time to go from one state to another is large.        
         """
         P = self.getTransitionMatrix().T #take transpose now to speed up dot product.
         size = P.shape[0]        
         pi = np.zeros(size);  pi1 = np.zeros(size)
         pi[0] = 1;
         n = norm(pi - pi1,1); i = 0;
-        while n > tol and i < numIter:
+        while n > tol and i < maxiter:
             pi1 = P.dot(pi)
             pi = P.dot(pi1)
             n = norm(pi - pi1,1); i += 1
         self.pi = pi
 
-    def eigenMethod(self, tol = 1e-8, numIter = 1e5):  
+    def eigenMethod(self, tol = 1e-8, maxiter = 1e5):
         """
-        Determines the eigenvector corresponding to the first eigenvalue.
-        The speed of convergence depends heavily on the choice of the initial guess for pi.
-        For now, we let the initial pi be a vector of ones.
+        Determines ``pi`` by searching for the eigenvector corresponding to the first eigenvalue, using the :func:`eigs` function. 
+        The result is stored in the class attribute ``pi``.         
+        
+        Parameters
+        ----------
+        tol : float, optional(default=1e-8)
+            Tolerance level for the precision of the end result. A lower tolerance leads to more accurate estimate of ``pi``.
+        maxiter : int, optional(default=1e5)
+            The maximum number of iterations to be carried out.            
+        
+        Example
+        -------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.eigenMethod()
+        >>> print(mc.pi) 
+        [ 0.54545455  0.45454545]
+        
+        Remarks
+        -------
+        The speed of convergence depends heavily on the choice of the initial guess for ``pi``.
+        Here we let the initial ``pi`` be a vector of ones. 
+        For large state spaces, this method may not work well.
         """
         Q = self.getTransitionMatrix(probabilities=False)
+        
+        if Q.shape == (1, 1):
+           self.pi = np.array([1.0]) 
+           return          
+        
+        if Q.shape == (2, 2):
+           warn("eigenMethod() does not work for a Markov chain with two states, calling powerMethod() instead.")
+           self.powerMethod()
+           return                 
+        
         size = Q.shape[0]
         guess = np.ones(size,dtype=float)
-        w, v = eigs(Q.T, k=1, v0=guess, sigma=1e-6, which='LM',tol=tol, maxiter=numIter)
+        w, v = eigs(Q.T, k=1, v0=guess, sigma=1e-6, which='LM',tol=tol, maxiter=maxiter)
         pi = v[:, 0].real
         pi /= pi.sum()
         
@@ -388,29 +450,71 @@ class markovChain(object):
         
     def linearMethod(self): 
         """
-        Here we use the standard linear algebra solver to obtain pi from a system of linear equations. 
-        The first equation isreplaced by the normalizing condition.
-        Consumes a lot of memory.
+        Determines ``pi`` by solving a system of linear equations using :func:`spsolve`. 
+        The method has no parameters since it is an exact method. The result is stored in the class attribute ``pi``.   
+     
+        Example
+        -------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.linearMethod()
+        >>> print(mc.pi) 
+        [ 0.54545455  0.45454545]
+        
+        Remarks
+        -------
+        For large state spaces, the linear algebra solver may not work well due to memory overflow.
         Code due to http://stackoverflow.com/questions/21308848/
-        """
-        P       = self.getTransitionMatrix()
+        """    
+        P       = self.getTransitionMatrix()        
+      
+        #if P consists of one element, then set self.pi = 1.0
+        if P.shape == (1, 1):
+           self.pi = np.array([1.0]) 
+           return  
+     
         size    = P.shape[0]
         dP      = P - eye(size)
-        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()
+        #Replace the first equation by the normalizing condition.
+        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()  
         rhs     = np.zeros((size,))
-        rhs[0]  = 1
+        rhs[0]  = 1   
         
         self.pi = spsolve(A, rhs)
 
     def krylovMethod(self,tol=1e-8): 
         """
-        Here we use the 'gmres' solver for the system of linear equations. 
-        It searches in Krylov subspace for a vector with minimal residual. 
+        We obtain ``pi`` by using the :func:``gmres`` solver for the system of linear equations. 
+        It searches in Krylov subspace for a vector with minimal residual. The result is stored in the class attribute ``pi``.   
+
+        Example
+        -------
+        >>> P = np.array([[0.5,0.5],[0.6,0.4]])
+        >>> mc = markovChain(P)
+        >>> mc.krylovMethod()
+        >>> print(mc.pi) 
+        [ 0.54545455  0.45454545]
+        
+        Parameters
+        ----------
+        tol : float, optional(default=1e-8)
+            Tolerance level for the precision of the end result. A lower tolerance leads to more accurate estimate of ``pi``.        
+        
+        Remarks
+        -------
+        For large state spaces, this method may not always give a solution. 
         Code due to http://stackoverflow.com/questions/21308848/
-        """
+        """            
         P       = self.getTransitionMatrix()
+        
+        #if P consists of one element, then set self.pi = 1.0
+        if P.shape == (1, 1):
+           self.pi = np.array([1.0]) 
+           return
+            
         size    = P.shape[0]
         dP      = P - eye(size)
+        #Replace the first equation by the normalizing condition.
         A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()
         rhs     = np.zeros((size,))
         rhs[0]  = 1
@@ -427,8 +531,8 @@ class markovChain(object):
         
         Parameters
         ----------
-        method : string
-            Optional parameter. Choose from 'power','eigen','linear','krylov'. 
+        method : string, optional(default='power')
+            The method for obtaining ``pi``. The possible options are 'power','eigen','linear','krylov'. 
         
         Example
         -------

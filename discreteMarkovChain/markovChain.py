@@ -428,6 +428,8 @@ class markovChain(object):
         The speed of convergence depends heavily on the choice of the initial guess for ``pi``.
         Here we let the initial ``pi`` be a vector of ones. 
         For large state spaces, this method may not work well.
+        At the moment, we call :func:`powerMethod` if the number of states is 2.
+        Code is due to a colleague: http://nicky.vanforeest.com/probability/markovChains/markovChain.html
         """
         Q = self.getTransitionMatrix(probabilities=False)
         
@@ -540,6 +542,7 @@ class markovChain(object):
         >>> mc = markovChain(P)
         >>> mc.computePi('power') 
         >>> print(mc.pi)
+        [ 0.54545455  0.45454545]        
         
         See Also
         --------

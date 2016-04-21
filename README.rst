@@ -1,6 +1,6 @@
 discreteMarkovChain
 =======================
-While for statistical and scientific programming languages such as R various packages are available for analyzing Markov chains, equivalent packages in Python are rather scarce. This discreteMarkovChain package for Python addresses the problem of obtaining the steady state distribution of a Markov chain, also known as the stationary distribution, limiting distribution or invariant measure. The package is for Markov chains with discrete and finite state spaces, which are most commonly encountered in practice. 
+While for statistical and scientific programming languages such as R various packages are available for analyzing Markov chains, equivalent packages in Python are rather scarce. This discreteMarkovChain package for Python addresses the problem of obtaining the steady state distribution of a Markov chain, also known as the stationary distribution, limiting distribution or invariant measure. The package is for Markov chains with discrete and finite state spaces, which are most commonly encountered in practical applications. 
 
 This package is based on numpy and scipy for efficient computations and limited use of resources. Markov chains with several million states can be solved. The package introduces the `markovChain` class which has the following features. 
 
@@ -112,6 +112,8 @@ Not unexpectedly, they are the same for each state. We can repeat this for a mul
 
 :: 
 
+    from discreteMarkovChain import partition 
+    
     class randomWalkNumpy(markovChain):
         #Now we do the same thing with a transition function that returns a 2d numpy array.
         #We also specify the statespace function so we can use the direct method.
@@ -142,11 +144,12 @@ Not unexpectedly, they are the same for each state. We can repeat this for a mul
             rates = self.eventRates[possibleEvents]
             return newstates,rates   
             
-        def statespace(self):
-            #Each random walk can be in a state between m and M, so the state space is the cartesian product of these ranges.
-            minvalues = [self.m]*self.n
-            maxvalues = [self.M]*self.n
-            return np.array([i for i in product(*(list(range(i,j+1)) for i,j in zip(minvalues,maxvalues)))],dtype=int)  
+      def statespace(self):
+          #Each random walk can be in a state between m and M.
+          #The function partition() gives all partitions of integers between min_range and max_range.
+          min_range = [self.m]*self.n
+          max_range = [self.M]*self.n
+          return partition(min_range,max_range) 
         
 
 Now we initialize `n=2` random walks between `m=0` and `M=2` and print the stationary distribution.

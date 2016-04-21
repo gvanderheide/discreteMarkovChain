@@ -179,4 +179,14 @@ We could also solve much larger models. The example below has random walks in 5 
 
 On a dual core computer from 2006, the rate matrix and `pi` can be calculated within 10 seconds. 
 
+---------------
+Changes in v0.2
+---------------
+* Added documentation for the `markovChain` class and all its methods, including examples. 
+* Added the function `partition` that can be used to determine the state space when states are consists of all integers between ranges. The optional parameter `max_sum` can be specified if the state vectors should sum up to less than `max_sum` (useful in some queueing and inventory applications).  
+* Fixed an error when calling `krylovMethod()`, `linearMethod()` and `eigenMethod` on Markov chains with one state.
+* Included a workaround for an error when calling `eigenMethod()` on Markov chains with two states.
+
+
+
 

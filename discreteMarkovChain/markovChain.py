@@ -438,7 +438,7 @@ class markovChain(object):
             return          
         
         if Q.shape == (2, 2):
-            self.pi= np.array([Q[0,1],Q[1,0]]/(Q[0,1]+Q[1,0]))
+            self.pi= np.array([Q[1,0],Q[0,1]]/(Q[0,1]+Q[1,0]))
             return                 
         
         size = Q.shape[0]
@@ -565,3 +565,4 @@ class markovChain(object):
         assert len(self.mapping)>0, "printPi() can only be used in combination with the direct or indirect method. Use print(mc.pi) if your subclass is called mc."        
         for key,state in self.mapping.items():
             print(state,self.pi[key])
+            

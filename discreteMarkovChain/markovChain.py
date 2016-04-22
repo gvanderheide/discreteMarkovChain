@@ -434,13 +434,12 @@ class markovChain(object):
         Q = self.getTransitionMatrix(probabilities=False)
         
         if Q.shape == (1, 1):
-           self.pi = np.array([1.0]) 
-           return          
+            self.pi = np.array([1.0]) 
+            return          
         
         if Q.shape == (2, 2):
-           warn("eigenMethod() does not work for a Markov chain with two states, calling powerMethod() instead.")
-           self.powerMethod()
-           return                 
+            self.pi= np.array([Q[0,1],Q[1,0]]/(Q[0,1]+Q[1,0]))
+            return                 
         
         size = Q.shape[0]
         guess = np.ones(size,dtype=float)
@@ -472,8 +471,8 @@ class markovChain(object):
       
         #if P consists of one element, then set self.pi = 1.0
         if P.shape == (1, 1):
-           self.pi = np.array([1.0]) 
-           return  
+            self.pi = np.array([1.0]) 
+            return  
      
         size    = P.shape[0]
         dP      = P - eye(size)
@@ -511,8 +510,8 @@ class markovChain(object):
         
         #if P consists of one element, then set self.pi = 1.0
         if P.shape == (1, 1):
-           self.pi = np.array([1.0]) 
-           return
+            self.pi = np.array([1.0]) 
+            return
             
         size    = P.shape[0]
         dP      = P - eye(size)
@@ -566,4 +565,3 @@ class markovChain(object):
         assert len(self.mapping)>0, "printPi() can only be used in combination with the direct or indirect method. Use print(mc.pi) if your subclass is called mc."        
         for key,state in self.mapping.items():
             print(state,self.pi[key])
-

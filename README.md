@@ -102,7 +102,7 @@ The stationary probabilities are given below.
 5 0.166666666667
 ```
 
-Not unexpectedly, they are the same for each state. We can repeat this for a multi-dimensional random walk. Now we use the direct method. Here, we need to use a transition function returning numpy arrays and we need to define a function that calculates the state space.
+Not unexpectedly, they are the same for each state. We can repeat this for a multi-dimensional random walk. Now we use the direct method. Here, we need to use a transition function returning numpy arrays and we need to define a function that calculates the state space. For explanation of the transition function, see the example [here](./event examples.ipynb).
 
 ```python
 from discreteMarkovChain import partition

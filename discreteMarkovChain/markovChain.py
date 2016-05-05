@@ -9,12 +9,55 @@ from scipy.sparse import coo_matrix,csr_matrix, csgraph, eye, vstack, isspmatrix
 from scipy.sparse.linalg import eigs, gmres, spsolve
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
-from warnings import warn
+
+from pyamg.amg_core import gauss_seidel as pyamg_gs
 
 try: #For python 3 functionality.
     from itertools import imap
 except ImportError:
     imap = map
+    
+def gauss_seidel(A, x, b, iterations=1, sweep='forward'):
+    """Perform Gauss-Seidel iteration on the linear system Ax=b
+    
+    Parameters
+    ----------
+    A : {csr_matrix, bsr_matrix}
+        Sparse NxN matrix
+    x : ndarray
+        Approximate solution (length N)
+    b : ndarray
+        Right-hand side (length N)
+    iterations : int
+        Number of iterations to perform
+    sweep : {'forward','backward','symmetric'}
+        Direction of sweep
+        
+    Returns
+    -------
+    Nothing, x will be modified in place.
+    
+    Remarks
+    --------
+    Code is adapted from :func:`pyamg.relaxation.gauss_seidel`, with some of the overhead removed.
+    """
+    if sweep == 'forward':
+        row_start, row_stop, row_step = 0, len(x), 1
+    elif sweep == 'backward':
+        row_start, row_stop, row_step = len(x)-1, -1, -1
+    elif sweep == 'symmetric':
+        for iter in range(iterations):
+            gauss_seidel(A, x, b, iterations=1, sweep='forward')
+            gauss_seidel(A, x, b, iterations=1, sweep='backward')
+        return
+    else:
+        raise ValueError("valid sweep directions are 'forward',\
+                          'backward', and 'symmetric'")
+
+    for iter in range(iterations):
+        pyamg_gs(A.indptr, A.indices, A.data, x, b,
+                              row_start, row_stop, row_step)
+                              
 
 class markovChain(object): 
     """
@@ -367,7 +410,26 @@ class markovChain(object):
         
         return P
                      
-    def powerMethod(self, tol = 1e-8, maxiter = 1e5):
+    def makeLinearSystem(self,P):    
+        """
+        Transform P into a linear algebra system (P-I)^T = 0, replacing the last column with the normalizing condition. 
+        """
+        size    = P.shape[0]       
+        dP      = P - eye(size)
+        
+        #Replace the first equation by the normalizing condition.
+        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()  
+        rhs     = np.zeros((size,))
+        rhs[0]  = 1                 
+        
+#        #Replace the last equation by the normalizing condition.
+#        A       = vstack([dP.T[:-1,:],np.ones(size)]).tocsr()  
+#        rhs     = np.zeros((size,))
+#        rhs[-1]  = 1  
+        return A,rhs
+                             
+    
+    def power(self, tol = 1e-8, maxiter = 1e5):
         """
         Carry out the power method and store the result in the class attribute ``pi``. 
         Repeatedly takes the dot product between ``P`` and ``pi`` until the norm is smaller than the prespecified tolerance ``tol``.
@@ -389,21 +451,21 @@ class markovChain(object):
         
         Remarks
         -------
-        The power method is robust even when state space becomes large (more than 500.000 states), whereas the other methods may have some issues with memory or convergence.
+        The power method is robust even when state space becomes large (more than 500.000 states), whereas the other methods may have some issues with memory.
         The power method may converge slowly for Markov chains where states are rather disconnected. That is, when the expected time to go from one state to another is large.        
         """
         P = self.getTransitionMatrix().T #take transpose now to speed up dot product.
         size = P.shape[0]        
         pi = np.zeros(size);  pi1 = np.zeros(size)
         pi[0] = 1;
-        n = norm(pi - pi1,1); i = 0;
-        while n > tol and i < maxiter:
+        n = norm(pi - pi1,1); i = 0
+        while n > tol and i < maxiter/2.: #divide by 2 since you do two iterations each time to avoid copying.
             pi1 = P.dot(pi)
             pi = P.dot(pi1)
             n = norm(pi - pi1,1); i += 1
         self.pi = pi
 
-    def eigenMethod(self, tol = 1e-8, maxiter = 1e5):
+    def eigen(self, tol = 1e-8, maxiter = 1e5):
         """
         Determines ``pi`` by searching for the eigenvector corresponding to the first eigenvalue, using the :func:`eigs` function. 
         The result is stored in the class attribute ``pi``.         
@@ -449,10 +511,10 @@ class markovChain(object):
         
         self.pi = pi
         
-    def linearMethod(self): 
+    def linear(self): 
         """
         Determines ``pi`` by solving a system of linear equations using :func:`spsolve`. 
-        The method has no parameters since it is an exact method. The result is stored in the class attribute ``pi``.   
+        The method has no tuning parameters since it is an exact method. The result is stored in the class attribute ``pi``.   
      
         Example
         -------
@@ -467,23 +529,19 @@ class markovChain(object):
         For large state spaces, the linear algebra solver may not work well due to memory overflow.
         Code due to http://stackoverflow.com/questions/21308848/
         """    
-        P       = self.getTransitionMatrix()        
-      
-        #if P consists of one element, then set self.pi = 1.0
+        P       = self.getTransitionMatrix()  
+            
+        #if P consists of one element, then set pi = 1.0
+        #otherwise make a linear algebra system and solve for pi
         if P.shape == (1, 1):
             self.pi = np.array([1.0]) 
-            return  
-     
-        size    = P.shape[0]
-        dP      = P - eye(size)
-        #Replace the first equation by the normalizing condition.
-        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()  
-        rhs     = np.zeros((size,))
-        rhs[0]  = 1   
-        
+            return
+           
+        A,rhs = self.makeLinearSystem(P)       
         self.pi = spsolve(A, rhs)
 
-    def krylovMethod(self,tol=1e-8): 
+
+    def krylov(self,tol=1e-8): 
         """
         We obtain ``pi`` by using the :func:``gmres`` solver for the system of linear equations. 
         It searches in Krylov subspace for a vector with minimal residual. The result is stored in the class attribute ``pi``.   
@@ -506,25 +564,59 @@ class markovChain(object):
         For large state spaces, this method may not always give a solution. 
         Code due to http://stackoverflow.com/questions/21308848/
         """            
-        P       = self.getTransitionMatrix()
+        P       = self.getTransitionMatrix()   
         
         #if P consists of one element, then set self.pi = 1.0
         if P.shape == (1, 1):
             self.pi = np.array([1.0]) 
-            return
+            return                     
             
-        size    = P.shape[0]
-        dP      = P - eye(size)
-        #Replace the first equation by the normalizing condition.
-        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()
-        rhs     = np.zeros((size,))
-        rhs[0]  = 1
-                
+        A,rhs = self.makeLinearSystem(P)                
         pi, info = gmres(A, rhs, tol=tol)
         if info != 0:
             raise RuntimeError("gmres did not converge")
         self.pi = pi
         
+    def gauss_seidel(self, tol = 1e-8, maxiter = 1e5):
+        P = self.getTransitionMatrix() 
+        size    = P.shape[0]
+        A,rhs = self.makeLinearSystem(P)    
+        
+        pi_old  = np.zeros((size,))
+        pi      = np.zeros((size,)) 
+        pi[0]   = 1
+                
+        n = norm(pi - pi_old,1); i = 0
+        while n > tol and i < maxiter:
+            pi_old[:] = pi
+            gauss_seidel(A,pi,rhs,iterations=1)
+            n = norm(pi - pi_old,1); i += 1
+                        
+        self.pi = pi
+
+    def sor(self, omega=1.0, tol = 1e-8, maxiter = 1e5):
+        P = self.getTransitionMatrix() #take transpose now to speed up dot product.
+        size    = P.shape[0]
+        dP      = P - eye(size)
+        #Replace the first equation by the normalizing condition.
+        A       = vstack([np.ones(size), dP.T[1:,:]]).tocsr()  
+        rhs     = np.zeros((size,))
+        rhs[0]  = 1 
+        
+        pi_old  = np.zeros(size,)
+        pi      = np.zeros(size,) 
+        pi[0]   = 1
+                
+        n = norm(pi - pi_old,1); i = 0
+        while n > tol and i < maxiter:
+            pi_old[:] = pi
+            gauss_seidel(A,pi,rhs,iterations=1)
+            pi *= omega
+            pi += pi_old*(1-omega)
+            n = norm(pi - pi_old,1); i += 1
+                        
+        self.pi = pi
+    
     def computePi(self,method='power'):
         """
         Calculate the steady state distribution using your preferred method and store it in the attribute `pi`. 
@@ -553,7 +645,6 @@ class markovChain(object):
         """
         methodSet = ['power','eigen','linear','krylov']
         assert method in methodSet, "Incorrect method specified. Choose from %r" % methodSet
-        method = method + 'Method'         
         return getattr(self,method)()
 
     def printPi(self):
@@ -565,4 +656,9 @@ class markovChain(object):
         assert len(self.mapping)>0, "printPi() can only be used in combination with the direct or indirect method. Use print(mc.pi) if your subclass is called mc."        
         for key,state in self.mapping.items():
             print(state,self.pi[key])
-            
+
+if __name__ == '__main__':             
+    P = np.array([[0.5,0.5],[0.6,0.4]])
+    mc = markovChain(P)
+    mc.gauss_seidel()
+    print(mc.pi)

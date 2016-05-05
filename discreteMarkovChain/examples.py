@@ -47,7 +47,7 @@ class randomWalkMulti(markovChain):
     def transition(self,state):
         #now we need to loop over the states
         rates = {}
-        for i in range(n):
+        for i in range(self.n):
             if self.m < state[i] < self.M:
                 rates[self.tupleAdd(state,i,1)] = self.uprate 
                 rates[self.tupleAdd(state,i,-1)] = self.downrate 
@@ -97,21 +97,20 @@ class randomWalkNumpy(markovChain):
 if __name__ == '__main__': 
     import time    
 
-    P = np.array([[0.5,0.5],[0.6,0.4]])
-    mc = markovChain(P)
-    mc.computePi('linear')
-    print(mc.pi)
-    
-    #for a one-dimensional state space, calculate the steady state distribution.
-    #provided uprate and downrate are the same, each state is equally likely        
-    m = 0; M = 5    
+#    P = np.array([[0.5,0.5],[0.6,0.4]])
+#    mc = markovChain(P)
+#    mc.computePi('linear')
+#    print(mc.pi)
+#    
+#    #for a one-dimensional state space, calculate the steady state distribution.
+#    #provided uprate and downrate are the same, each state is equally likely        
+    m = 0; M = 5
     mc = randomWalk(m,M)
-    mc.computePi('linear')
-    mc.printPi()    
     
-    mc = randomWalkNumpy(m,M,n=1)
-    mc.computePi('linear')
-    mc.printPi()  
+    mc.computePi('linear'); print(mc.pi)
+    mc.computePi('power'); print(mc.pi)
+    mc.computePi('krylov'); print(mc.pi)
+    mc.computePi('eigen'); print(mc.pi)    
     
     mc = randomWalkNumpy(0,2,n=2)
     mc.computePi('linear')
@@ -119,17 +118,18 @@ if __name__ == '__main__':
     
     #When states are scalar integers, the indirect method is faster here. 
     #The linear algebra solver is quite fast for these one-dimensional problems (here, krylov and power method have really poor performance)
-    M = 100000
+    M = 1000
     tm=time.clock(); randomWalk(m,M).computePi('linear'); print("Indirect:",time.clock()-tm)
     tm=time.clock(); randomWalkNumpy(m,M,n=1).computePi('linear'); print("Direct:", time.clock()-tm)       
-         
-    
+    tm=time.clock(); randomWalkNumpy(m,M,n=1).gauss_seidel(); print("Direct:", time.clock()-tm) 
+     
+ 
     #Now a multidimensional case with an equal number of states.
     #Since building the state space is much more complex, the direct approach is faster. 
     #Here the krylov method and power method seem to work best. 
     #The linear algebra solver has memory problems, likely due to fill up of the sparse matrix.
-    n = 5; m = 0; M = 9
-    tm=time.clock(); randomWalkMulti(m,M,n).computePi('krylov'); print("Indirect:", time.clock()-tm)
-    tm=time.clock(); randomWalkNumpy(m,M,n).computePi('krylov'); print("Direct:",time.clock()-tm)
-
+#    n = 5; m = 0; M = 9
+#    tm=time.clock(); randomWalkMulti(m,M,n).computePi('krylov'); print("Indirect:", time.clock()-tm)
+#    tm=time.clock(); randomWalkNumpy(m,M,n).computePi('krylov'); print("Direct:",time.clock()-tm)
+#
 

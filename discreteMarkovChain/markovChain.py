@@ -9,7 +9,9 @@ from scipy.sparse import coo_matrix,csr_matrix, csgraph, eye, vstack, isspmatrix
 from scipy.sparse.linalg import eigs, gmres, spsolve
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
-from warnings import warn
+
+
+from scipy.sparse import dok_matrix
 
 try: #For python 3 functionality.
     from itertools import imap
@@ -191,6 +193,7 @@ class markovChain(object):
         frontier                = set( [initState] )
         rates                   = OrderedDict()
         
+
         while len(frontier) > 0:
             fromstate = frontier.pop()
             fromindex = mapping[fromstate]    
@@ -211,12 +214,12 @@ class markovChain(object):
         #Inverse the keys and values in mapping to get a dictionary with indices and states.
         self.mapping = {value: key for key, value in list(mapping.items())}
         
-        #Now use the keys and values of the rates dictionary to fill up a sparse coo_matrix.
-        rateArray = np.array(list(rates.keys()))
-        rows      = rateArray[:,0]
-        cols      = rateArray[:,1]
-        return coo_matrix((np.array(list(rates.values())),(rows,cols)),shape=(self.size,self.size),dtype=float).tocsr()
-       
+        #Use the `rates` dictionary to fill a sparse dok matrix.
+        D = dok_matrix((self.size,self.size))
+        D.update(rates)
+        return D.tocsr()
+        
+
     def getStateCode(self,state):
         """                
         Calculates the state code for a specific state or set of states.
@@ -265,10 +268,10 @@ class markovChain(object):
      
     def transitionStates(self,state):
         """
-        Return the indices of new states, the rates, and the number of transitions. 
+        Return the indices of new states and their rates. 
         """
         newstates,rates         = self.transition(state)              
-        newindices              = self.getStateIndex(newstates)  
+        newindices              = self.getStateIndex(newstates)
         return newindices,rates
 
     def directInitialMatrix(self):   
@@ -282,12 +285,19 @@ class markovChain(object):
 
         #For each state, calculate the indices of reached states and rates using the transition function.
         results  = imap(self.transitionStates, self.mapping.values())
+        
+         #Simpler alternative that uses less memory. 
+         #Would be competitive if the conversion from dok to csr is faster.  
+#        D = dok_matrix((self.size,self.size),dtype=float)
+#        for index,(col,rate) in enumerate(results):
+#            D.update({(index,c): r for c,r in zip(col,rate)})
+#        return D.tocsr()
 
         #preallocate memory for the rows, cols and rates of the sparse matrix      
         rows = np.empty(self.size,dtype=int)
         cols = np.empty(self.size,dtype=int)
-        rates = np.empty(self.size,dtype=float)        
-        
+        rates = np.empty(self.size,dtype=float)
+            
         #now fill the arrays with the results, increasing their size if current memory is too small.
         right = 0
         for index,(col,rate) in enumerate(results): #more robust alternative: in izip(self.mapping.keys(),results)

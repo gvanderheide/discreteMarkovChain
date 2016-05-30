@@ -76,6 +76,9 @@ or by downloading the source distribution and installing manually with
 Examples
 ------------
 
+Computing the steady state distribution
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 The `markovChain` class can be used to initialize your own Markov
 chains. We import it by using
 
@@ -99,6 +102,10 @@ We get the following steady state probabilities:
 .. code:: python
 
     [ 0.54545455  0.45454545]
+
+
+A One-dimensional Random Walk
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    
 
 Now we show an example of a one-dimensional random walk in continuous
 time between integers `m` and `M`. We move up and down with
@@ -160,11 +167,16 @@ The stationary probabilities are given below.
     4 0.166666666667
     5 0.166666666667
 
-Not unexpectedly, they are the same for each state. We can repeat this
-for a multi-dimensional random walk. Now we use the direct
-method. Here, we need to use a transition function returning numpy
-arrays and we need to define a function that calculates the state
-space.
+Not unexpectedly, they are the same for each state.
+
+A Multi-dimensional Random Walk
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We can repeat this for a multi-dimensional random walk. Now we use the
+direct method. Here, we need to use a transition function returning
+numpy arrays and we need to define a function that calculates the
+state space. For explanation of the transition function, see `this
+example <docs/multirandomwalk.ipynb>`_.
 
 .. code:: python 
 
@@ -246,6 +258,73 @@ run into memory problems.
 
 On a dual core computer from 2006, the rate matrix and `pi` can be
 calculated within 10 seconds.
+
+Expected Hitting Times
+^^^^^^^^^^^^^^^^^^^^^^
+
+The expected hitting time to a certain set `A` can be computed with
+this package too.
+
+Suppose `k` is the vector of hitting times, so `k[i]` is the expected
+time from state `i` to the set `A`. Then, clearly, `k[i]=0` for any
+state `i` in `A`. When state `i` not in `A` we wait one time step,
+make one transition from `i` to `j` with probability `P[i,j]`, and
+then see how long it takes from state `j` to reach `A`. Thus, the
+vector `k` must be such that `k[i]=0` for `i` in `A` and `k = 1 +
+P.dot(k)` for `k` not in `A`.
+
+For the example of the one-dimensional random walk, suppose we want to
+know the time to hit the origion. Then `A=set([0])`, i.e., the hitting
+set `A` only contains the state `0`. In the computations we use a mask
+to set `k[0]=0` after each iteration. 
+
+.. code:: python
+
+    mc = randomWalk(0,5)
+    P = mc.getTransitionMatrix()
+
+    A = set([0])
+    mask = np.zeros(mc.size)
+    for i in range(mc.size):
+        if i in A:
+            mask[i]=1
+
+    one = np.ones(mc.size)
+    np.putmask(one, mask, 0)
+
+    k = np.zeros(mc.size)
+    for i in range(100):
+        k = P.dot(x)+one
+        np.putmask(k, mask, 0)
+    print(k)
+
+    [  0.           9.86851962  17.74650115  23.64447789  27.57120126
+  29.53293175]
+
+
+
+A more proper stopping criterion is when the difference between the
+old and new value of `k` is below some threshold.
+
+.. code:: python
+
+    from numpy import linalg as LA
+    
+    k1 = np.zeros(mc.size)
+    k2 = P.dot(k1)+one
+    i = 0
+    while(LA.norm(k1-k2)>1e-6):
+        k1=k2
+        k2 = P.dot(k1)+one
+        np.putmask(k2, mask, 0)
+        i += 1
+    print(k2)
+    print(i)
+
+    [  0.          10.00999607  18.01799247  24.02398947  28.02798732
+  30.02998621]
+
+
 
 ----------------
 Changes in v0.22

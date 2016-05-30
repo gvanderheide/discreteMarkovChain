@@ -79,7 +79,7 @@ Examples
 The `markovChain` class can be used to initialize your own Markov
 chains. We import it by using
 
-.. code::python
+.. code:: python
 
     import numpy as np
     from discreteMarkovChain import markovChain
@@ -87,7 +87,7 @@ chains. We import it by using
 First, lets consider a simple Markov chain with two states, where we
 already know the probability matrix `P`.
 
-.. code::python
+.. code:: python
 
     P = np.array([[0.5,0.5],[0.6,0.4]])
     mc = markovChain(P)
@@ -96,7 +96,7 @@ already know the probability matrix `P`.
 
 We get the following steady state probabilities:
 
-.. code::python
+.. code:: python
 
     [ 0.54545455  0.45454545]
 
@@ -107,7 +107,7 @@ for us automatically. The indirect method is rather flexible, and
 allows the transition function to return a dictionary with reachable
 states and rates. We first introduce our `randomWalk` class.
 
-.. code::python
+.. code:: python
 
     class randomWalk(markovChain):
 
@@ -143,7 +143,7 @@ states and rates. We first introduce our `randomWalk` class.
 Now we initialize the random walk with some values for `m` and `M` and
 calculate the steady-state vector `pi`.
 
-.. code::python
+.. code:: python
 
     mc = randomWalk(0,5)
     mc.computePi()
@@ -151,7 +151,7 @@ calculate the steady-state vector `pi`.
 
 The stationary probabilities are given below.
 
-.. code::python
+.. code:: python
 
     0 0.166666666667
     1 0.166666666667
@@ -166,7 +166,7 @@ method. Here, we need to use a transition function returning numpy
 arrays and we need to define a function that calculates the state
 space.
 
-.. code::python 
+.. code:: python 
 
     from discreteMarkovChain import partition 
 
@@ -218,7 +218,7 @@ space.
 Now we initialize `n=2` random walks between `m=0` and `M=2` and print
 the stationary distribution.
 
-.. code::python
+.. code:: python
 
     mc = randomWalkNumpy(0,2,n=2)
     mc.computePi('linear')
@@ -239,7 +239,7 @@ walks in 5 dimensions with 100.000 states. For these larger models, it
 is often better to use the power method. The linear algebra solver may
 run into memory problems.
 
-.. code::python
+.. code:: python
 
     mc = randomWalkNumpy(0,9,n=5)
     mc.computePi('power')

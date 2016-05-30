@@ -165,7 +165,7 @@ for a multi-dimensional random walk. Now we use the direct
 method. Here, we need to use a transition function returning numpy
 arrays and we need to define a function that calculates the state
 space. For explanation of the transition function, see 
-:doc:`this example <docs/multirandomwalk>`.
+`docs/multirandomwalk`_.
 
 .. code:: python 
 

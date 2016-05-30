@@ -12,7 +12,7 @@ most commonly encountered in practical applications.
 
 This package is based on numpy and scipy for efficient computations
 and limited use of resources. Markov chains with several million
-states can be solved. The package introduces the `markovChain` class
+states can be solved. The package introduces the ``markovChain`` class
 which has the following features.
 
 * States can be either integers or vectors of integers.
@@ -48,12 +48,12 @@ which has the following features.
   are connected.
 * Memory consumption is reduced by using sparse matrices. 
 
-When the user calls a certain solution method, the `markovChain`
-object gets the attribute `pi` which specifies the steady state
+When the user calls a certain solution method, the ``markovChain``
+object gets the attribute ``pi`` which specifies the steady state
 probability of each state. When the user uses the direct or indirect
-method, the object gets the `mapping` attribute which is a dictionary
-that links each index of `pi` with a corresponding state. Using the
-`mapping` and `pi`, it becomes simple to calculate performance
+method, the object gets the ``mapping`` attribute which is a dictionary
+that links each index of ``pi`` with a corresponding state. Using the
+``mapping`` and ``pi``, it becomes simple to calculate performance
 measures for your Markov chain, such as the average cost per time unit
 or the number of blocked customers in a queue with blocking.
 
@@ -79,7 +79,7 @@ Examples
 Computing the steady state distribution
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The `markovChain` class can be used to initialize your own Markov
+The ``markovChain`` class can be used to initialize your own Markov
 chains. We import it by using
 
 .. code:: python
@@ -88,7 +88,7 @@ chains. We import it by using
     from discreteMarkovChain import markovChain
 
 First, lets consider a simple Markov chain with two states, where we
-already know the probability matrix `P`.
+already know the probability matrix ``P``.
 
 .. code:: python
 
@@ -108,11 +108,11 @@ A One-dimensional Random Walk
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^    
 
 Now we show an example of a one-dimensional random walk in continuous
-time between integers `m` and `M`. We move up and down with
+time between integers ``m`` and ``M``. We move up and down with
 rates 1. We will use the indirect method to determine the rate matrix
 for us automatically. The indirect method is rather flexible, and
 allows the transition function to return a dictionary with reachable
-states and rates. We first introduce our `randomWalk` class.
+states and rates. We first introduce our ``randomWalk`` class.
 
 .. code:: python
 
@@ -147,8 +147,8 @@ states and rates. We first introduce our `randomWalk` class.
                 rates[state-1] = self.downrate 
             return rates
 
-Now we initialize the random walk with some values for `m` and `M` and
-calculate the steady-state vector `pi`.
+Now we initialize the random walk with some values for ``m`` and ``M`` and
+calculate the steady-state vector ``pi``.
 
 .. code:: python
 
@@ -227,7 +227,7 @@ example <docs/multirandomwalk.ipynb>`_.
               return partition(min_range,max_range) 
         
 
-Now we initialize `n=2` random walks between `m=0` and `M=2` and print
+Now we initialize ``n=2`` random walks between ``m=0`` and ``M=2`` and print
 the stationary distribution.
 
 .. code:: python
@@ -256,27 +256,27 @@ run into memory problems.
     mc = randomWalkNumpy(0,9,n=5)
     mc.computePi('power')
 
-On a dual core computer from 2006, the rate matrix and `pi` can be
+On a dual core computer from 2006, the rate matrix and ``pi`` can be
 calculated within 10 seconds.
 
 Expected Hitting Times
 ^^^^^^^^^^^^^^^^^^^^^^
 
-The expected hitting time to a certain set `A` can be computed with
+The expected hitting time to a certain set ``A`` can be computed with
 this package too.
 
-Suppose `k` is the vector of hitting times, so `k[i]` is the expected
-time from state `i` to the set `A`. Then, clearly, `k[i]=0` for any
-state `i` in `A`. When state `i` not in `A` we wait one time step,
-make one transition from `i` to `j` with probability `P[i,j]`, and
-then see how long it takes from state `j` to reach `A`. Thus, the
-vector `k` must be such that `k[i]=0` for `i` in `A` and `k = 1 +
-P.dot(k)` for `k` not in `A`.
+Suppose ``k`` is the vector of hitting times, so ``k[i]`` is the expected
+time from state ``i`` to the set ``A``. Then, clearly, ``k[i]=0`` for any
+state ``i`` in ``A``. When state ``i`` not in ``A`` we wait one time step,
+make one transition from ``i`` to ``j`` with probability ``P[i,j]``, and
+then see how long it takes from state ``j`` to reach ``A``. Thus, the
+vector ``k`` must be such that ``k[i]=0`` for ``i`` in ``A`` and ``k = 1 +
+P.dot(k)`` for ``k`` not in ``A``.
 
 For the example of the one-dimensional random walk, suppose we want to
-know the time to hit the origion. Then `A=set([0])`, i.e., the hitting
-set `A` only contains the state `0`. In the computations we use a mask
-to set `k[0]=0` after each iteration. 
+know the time to hit the origion. Then ``A=set([0])``, i.e., the hitting
+set ``A`` only contains the state ``0``. In the computations we use a mask
+to set ``k[0]=0`` after each iteration. 
 
 .. code:: python
 
@@ -304,7 +304,7 @@ to set `k[0]=0` after each iteration.
 
 
 A more proper stopping criterion is when the difference between the
-old and new value of `k` is below some threshold.
+old and new value of ``k`` is below some threshold.
 
 .. code:: python
 
@@ -329,16 +329,16 @@ old and new value of `k` is below some threshold.
 ----------------
 Changes in v0.22
 ----------------
-* Added documentation for the `markovChain` class and all its methods,
+* Added documentation for the ``markovChain`` class and all its methods,
   including examples.
-* Added the function `partition` that can be used to determine the
+* Added the function ``partition`` that can be used to determine the
   state space when states are consists of all integers between
-  ranges. The optional parameter `max_sum` can be specified if the
-  state vectors should sum up to less than `max_sum` (useful in some
+  ranges. The optional parameter ``max_sum`` can be specified if the
+  state vectors should sum up to less than ``max_sum`` (useful in some
   queueing and inventory applications).
-* Fixed an error when calling `krylovMethod()`, `linearMethod()` and
-  `eigenMethod()` on Markov chains with one state.
-* Included a workaround for an error when calling `eigenMethod()` on
+* Fixed an error when calling ``krylovMethod()``, ``linearMethod()`` and
+  ``eigenMethod()`` on Markov chains with one state.
+* Included a workaround for an error when calling ``eigenMethod()`` on
   Markov chains with two states.
 
 

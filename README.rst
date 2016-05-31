@@ -283,19 +283,15 @@ to set ``k[0]=0`` after each iteration.
     mc = randomWalk(0,5)
     P = mc.getTransitionMatrix()
 
-    A = set([0])
-    mask = np.zeros(mc.size)
-    for i in range(mc.size):
-        if i in A:
-            mask[i]=1
+    hittingset=[0]
 
     one = np.ones(mc.size)
-    np.putmask(one, mask, 0)
+    one[hittingset] = 0
 
     k = np.zeros(mc.size)
     for i in range(100):
         k = P.dot(x)+one
-        np.putmask(k, mask, 0)
+        k[hittingset]  = 0
     print(k)
 
     [  0.           9.86851962  17.74650115  23.64447789  27.57120126

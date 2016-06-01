@@ -158,12 +158,4 @@ if __name__ == '__main__':
 #    tm=time.clock(); randomWalkMulti(m,M,n).computePi('krylov'); print("Indirect:", time.clock()-tm)
 #    tm=time.clock(); randomWalkNumpy(m,M,n).computePi('krylov'); print("Direct:",time.clock()-tm)
 
-#import numpy as np
-#from scipy.sparse import csr_matrix,csgraph
-#
-#P = np.array([[0.6,0.4,0.,0.],[0.3,0.7,0.,0.],[0.2,0.4,0.2,0.2],[0.,0.,0.,1.]])
-#P = csr_matrix(P)
-#
-#components,labels = csgraph.connected_components(P,connection="strong")
-#print( components, labels )
-#print( P.A[np.where(labels==0),np.where(labels==0)] )
+

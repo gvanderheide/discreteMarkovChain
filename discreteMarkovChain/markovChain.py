@@ -6,7 +6,7 @@ Possible fixes:
 from __future__ import print_function
 import numpy as np
 from scipy.sparse import coo_matrix,csr_matrix, csgraph, eye, vstack, isspmatrix, isspmatrix_csr
-from scipy.sparse.linalg import eigs, gmres, spsolve
+from scipy.sparse.linalg import eigs, gmres, spsolve, inv
 from numpy.linalg import norm
 from collections import OrderedDict,defaultdict
 
@@ -347,10 +347,10 @@ class markovChain(object):
         Converts the initial matrix to a probability matrix
         We calculate P = I + Q/l, with l the largest diagonal element.
         Even if Q is already a probability matrix, this step helps for numerical stability. 
-        By adding a small probability on the diagonal (0.001), periodicity can be prevented.
+        By adding a small probability on the diagonal (0.00001), periodicity can be prevented.
         """
         rowSums             = Q.sum(axis=1).getA1()
-        l                   = np.max(rowSums)*1.001
+        l                   = np.max(rowSums)*1.00001
         diagonalElements    = 1.-rowSums/l
         idxRange            = np.arange(Q.shape[0])
         Qdiag               = coo_matrix((diagonalElements,(idxRange,idxRange)),shape=Q.shape).tocsr()
@@ -388,10 +388,14 @@ class markovChain(object):
         if probabilities:    
             P = self.convertToProbabilityMatrix(self.P)
         else: 
-            P = self.convertToRateMatrix(self.P)
+            P = self.convertToRateMatrix(self.P)   
         
-        self.assertSingleClass(P) #Maybe this should be skipped on a next run?   
+        return P
         
+    def getIrreducibleTransitionMatrix(self,probabilities=True):
+        #Gets the transitionmatrix and assert that it consists of a single irreducible class.
+        P = self.getTransitionMatrix(probabilities=True)
+        self.assertSingleClass(P)   
         return P
                      
     def powerMethod(self, tol = 1e-8, maxiter = 1e5):
@@ -419,7 +423,7 @@ class markovChain(object):
         The power method is robust even when state space becomes large (more than 500.000 states), whereas the other methods may have some issues with memory or convergence.
         The power method may converge slowly for Markov chains where states are rather disconnected. That is, when the expected time to go from one state to another is large.        
         """
-        P = self.getTransitionMatrix().T #take transpose now to speed up dot product.
+        P = self.getIrreducibleTransitionMatrix().T #take transpose now to speed up dot product.
         size = P.shape[0]        
         pi = np.zeros(size);  pi1 = np.zeros(size)
         pi[0] = 1;
@@ -458,7 +462,7 @@ class markovChain(object):
         At the moment, we call :func:`powerMethod` if the number of states is 2.
         Code is due to a colleague: http://nicky.vanforeest.com/probability/markovChains/markovChain.html
         """
-        Q = self.getTransitionMatrix(probabilities=False)
+        Q = self.getIrreducibleTransitionMatrix(probabilities=False)
         
         if Q.shape == (1, 1):
             self.pi = np.array([1.0]) 
@@ -494,7 +498,7 @@ class markovChain(object):
         For large state spaces, the linear algebra solver may not work well due to memory overflow.
         Code due to http://stackoverflow.com/questions/21308848/
         """    
-        P       = self.getTransitionMatrix()        
+        P       = self.getIrreducibleTransitionMatrix()        
       
         #if P consists of one element, then set self.pi = 1.0
         if P.shape == (1, 1):
@@ -533,7 +537,7 @@ class markovChain(object):
         For large state spaces, this method may not always give a solution. 
         Code due to http://stackoverflow.com/questions/21308848/
         """            
-        P       = self.getTransitionMatrix()
+        P       = self.getIrreducibleTransitionMatrix()
         
         #if P consists of one element, then set self.pi = 1.0
         if P.shape == (1, 1):
@@ -592,5 +596,43 @@ class markovChain(object):
         assert len(self.mapping)>0, "printPi() can only be used in combination with the direct or indirect method. Use print(mc.pi) if your subclass is called mc."        
         for key,state in self.mapping.items():
             print(state,self.pi[key])
-            
+
+class finiteMarkovChain(markovChain):
+    def __init__(self,P=None):
+        super(finiteMarkovChain,self).__init__(P)    
     
+    def absorbTime(self):
+        P = self.getTransitionMatrix(probabilities=True)
+        components,labels = csgraph.connected_components(P, directed=True, connection='strong',return_labels=True)
+        if components == 1:
+            print("no absorbing states")
+            return
+            
+        transientStates = np.ones(P.shape[0],dtype=bool)
+
+        for component in range(components):
+            indices = np.where(labels==component)[0]
+            n = len(indices)
+            if n==1:
+                probSum = P[indices,indices].sum()
+            else:            
+                probSum = P[np.ix_(indices,indices)].sum()
+            if np.isclose(probSum,n):
+                transientStates[indices] = False
+
+        indices = np.where(transientStates)[0]
+        n = len(indices)
+        if n==1:
+            Q = P[indices,indices]
+        else:
+            Q = P[np.ix_(indices,indices)]
+        #N will be dense  
+        N = inv(eye(n)-Q).A
+        N2 = N*(2*N[np.arange(n),np.arange(n)]-np.eye(n))-np.power(N,2)
+        t = np.zeros(P.shape[0])
+        t[indices] = np.sum(N,axis=1)
+        for index in indices:
+            print( self.mapping[index],t[index] )
+
+        
+        

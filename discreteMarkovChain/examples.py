@@ -1,6 +1,6 @@
 from __future__ import print_function
 import numpy as np
-from markovChain import markovChain
+from markovChain import markovChain,finiteMarkovChain
 from usefulFunctions import partition
 
 class randomWalk(markovChain):
@@ -25,7 +25,30 @@ class randomWalk(markovChain):
         elif state == self.M:
             rates[state-1] = self.downrate 
         return rates
-            
+           
+class absorbingWalk(finiteMarkovChain):
+    #A random walk where we move up and down with rate 1.0 in each state between bounds m and M.
+    #For the transition function to work well, we define some class variables in the __init__ function.
+    def __init__(self,m,M):
+        super(absorbingWalk, self).__init__() #always use this as first line when creating your own __init__ 
+        self.initialState = M
+        self.m = m
+        self.M = M
+        self.uprate = 1.0
+        self.downrate = 1.0   
+        
+    def transition(self,state):
+        #Using a dictionary here is quite simple! 
+        rates = {}
+        if self.m < state < self.M:
+            rates[state+1] = self.uprate 
+            rates[state-1] = self.downrate 
+        elif state == self.m:
+            rates[state] = self.uprate 
+        elif state == self.M:
+            rates[state-1] = self.downrate
+        return rates           
+           
 class randomWalkMulti(markovChain):
     #Now we move up an down on multiple dimensions. 
     def __init__(self,m,M,n,direct=False):
@@ -47,7 +70,7 @@ class randomWalkMulti(markovChain):
     def transition(self,state):
         #now we need to loop over the states
         rates = {}
-        for i in range(n):
+        for i in range(self.n):
             if self.m < state[i] < self.M:
                 rates[self.tupleAdd(state,i,1)] = self.uprate 
                 rates[self.tupleAdd(state,i,-1)] = self.downrate 
@@ -117,19 +140,30 @@ if __name__ == '__main__':
     mc.computePi('linear')
     mc.printPi()
     
+    mc = absorbingWalk(m,M).computeMeasures()
+
+    
     #When states are scalar integers, the indirect method is faster here. 
     #The linear algebra solver is quite fast for these one-dimensional problems (here, krylov and power method have really poor performance)
-    M = 100000
-    tm=time.clock(); randomWalk(m,M).computePi('linear'); print("Indirect:",time.clock()-tm)
-    tm=time.clock(); randomWalkNumpy(m,M,n=1).computePi('linear'); print("Direct:", time.clock()-tm)       
+#    M = 100000
+#    tm=time.clock(); randomWalk(m,M).computePi('linear'); print("Indirect:",time.clock()-tm)
+#    tm=time.clock(); randomWalkNumpy(m,M,n=1).computePi('linear'); print("Direct:", time.clock()-tm)       
          
     
     #Now a multidimensional case with an equal number of states.
     #Since building the state space is much more complex, the direct approach is faster. 
     #Here the krylov method and power method seem to work best. 
     #The linear algebra solver has memory problems, likely due to fill up of the sparse matrix.
-    n = 5; m = 0; M = 9
-    tm=time.clock(); randomWalkMulti(m,M,n).computePi('krylov'); print("Indirect:", time.clock()-tm)
-    tm=time.clock(); randomWalkNumpy(m,M,n).computePi('krylov'); print("Direct:",time.clock()-tm)
+#    n = 5; m = 0; M = 9
+#    tm=time.clock(); randomWalkMulti(m,M,n).computePi('krylov'); print("Indirect:", time.clock()-tm)
+#    tm=time.clock(); randomWalkNumpy(m,M,n).computePi('krylov'); print("Direct:",time.clock()-tm)
 
-
+#import numpy as np
+#from scipy.sparse import csr_matrix,csgraph
+#
+#P = np.array([[0.6,0.4,0.,0.],[0.3,0.7,0.,0.],[0.2,0.4,0.2,0.2],[0.,0.,0.,1.]])
+#P = csr_matrix(P)
+#
+#components,labels = csgraph.connected_components(P,connection="strong")
+#print( components, labels )
+#print( P.A[np.where(labels==0),np.where(labels==0)] )

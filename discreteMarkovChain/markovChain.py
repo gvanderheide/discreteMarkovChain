@@ -126,15 +126,26 @@ class markovChain(object):
         Returns an int if the state is an integer, otherwise a tuple.
         """
         assert initialState is not None, "Initial state has not been specified."
-        assert isinstance(initialState,(int,list,tuple,np.ndarray)), "initialState %r is not an int, tuple, list, or numpy array" % initialState
+        assert isinstance(initialState,(int,list,tuple,np.ndarray,set)), "initialState %r is not an int, tuple, list, set or numpy array" % initialState
 
-        if isinstance(initialState,(list,tuple)):
+
+        if isinstance(initialState,(list,tuple)): 
+            #Check whether all entries are ints. Return an int if the len ==1, otherwise a tuple.
             assert all(isinstance(i, int) for i in initialState), "initialState %r is not integer" % initialState 
-            initialState = int(initialState) if len(initialState)==1 else tuple(initialState) 
+            initialState = int(initialState) if len(initialState)==1 else tuple(initialState)          
+            
         elif isinstance(initialState,np.ndarray):
+            #Check whether the state is a 1d numpy array. Return an int if it has length 1.
             assert issubclass(initialState.dtype.type, np.integer) and initialState.ndim==1, "initialState %r is not a one-dimensional integer numpy array" % initialState 
-            initialState = int(initialState) if len(initialState)==1 else tuple(initialState) 
-
+            initialState = int(initialState) if len(initialState)==1 else tuple(initialState)
+            
+        elif isinstance(initialState,set):
+            #If we have a set, then check whether all elements are ints or tuples.
+            for state in initialState:                
+                assert isinstance(state,(tuple,int)), "the set initialState %r should contain tuples or ints" % initialState 
+                if isinstance(state,tuple):
+                    assert all(isinstance(i,int) for i in state), "the state %r should be integer" % initialState 
+                
         return initialState
 
     def checkTransitionType(self,state):
@@ -180,19 +191,25 @@ class markovChain(object):
         We repeatedly call the transition function on unvisited states in the frontier set.
         Each newly visited state is put in a dictionary called 'mapping' and the rates are stored in a dictionary.
         """
-        
-        #Check whether the initial state is defined and of the correct type 
-        initState               = self.checkInitialState(initialState)   
-                
-        #Now test if the transition function returns a dict or a numpy array.
-        #It is more robust to call this after every transition. However, we do it once to save time.
-        usesNumpy               = self.checkTransitionType(initialState)
-
-        mapping                 = {}           
-        mapping[initState]      = 0
-        frontier                = set( [initState] )
+        mapping                 = {}   
         rates                   = OrderedDict()
         
+        #Check whether the initial state is defined and of the correct type, and convert to a tuple or int. 
+        convertedState           = self.checkInitialState(initialState)        
+
+        if isinstance(convertedState,set):
+            #If initialstates is a set, include all states in the set in the mapping.
+            frontier = set( convertedState )
+            for idx,state in enumerate(convertedState):  
+                mapping[state] = idx
+                if idx == 0: #Test the return type of the transition function (dict or numpy).
+                    usesNumpy = self.checkTransitionType(initialState)                
+        else:
+            #Otherwise include only the single state.
+            frontier                = set( [convertedState] )
+            usesNumpy               = self.checkTransitionType(initialState)
+            mapping[convertedState] = 0       
+     
 
         while len(frontier) > 0:
             fromstate = frontier.pop()
@@ -576,3 +593,4 @@ class markovChain(object):
         for key,state in self.mapping.items():
             print(state,self.pi[key])
             
+    

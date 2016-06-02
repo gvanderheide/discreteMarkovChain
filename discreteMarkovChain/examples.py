@@ -140,7 +140,7 @@ if __name__ == '__main__':
     mc.computePi('linear')
     mc.printPi()
     
-    mc = absorbingWalk(m,M).computeMeasures()
+    mc = absorbingWalk(m,M).absorbTime()
 
     
     #When states are scalar integers, the indirect method is faster here. 

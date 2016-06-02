@@ -116,6 +116,35 @@ class randomWalkNumpy(markovChain):
         min_range = [self.m]*self.n
         max_range = [self.M]*self.n
         return partition(min_range,max_range) 
+
+from collections import namedtuple
+
+State = namedtuple('State', "x y")
+
+class randomWalk2D(markovChain):
+    def __init__(self):
+        super(randomWalk2D, self).__init__() 
+        self.initialState = State(x=0,y=0)
+        self.left = 0
+        self.right = 10
+        self.up = 5
+        self.down = 0
+        self.uprate = self.downrate = 1.
+        self.leftrate = 2.
+        self.rightrate  = 1.
+
+    def transition(self,state):
+        rates = {}
+        x,y = state.x, state.y
+        if x > self.left:
+            rates[State(x=x-1, y=y)] = self.leftrate 
+        if x < self.right:
+            rates[State(x=x+1, y=y)] = self.rightrate 
+        if y > self.down:
+            rates[State(x=x, y=y-1)] = self.downrate 
+        if y < self.up:
+            rates[State(x=x, y= y+1)] = self.uprate 
+        return rates
         
 if __name__ == '__main__': 
     import time    
@@ -127,7 +156,7 @@ if __name__ == '__main__':
     
     #for a one-dimensional state space, calculate the steady state distribution.
     #provided uprate and downrate are the same, each state is equally likely        
-    m = 0; M = 5    
+    m = 0; M = 2   
     mc = randomWalk(m,M)
     mc.computePi('linear')
     mc.printPi()    
@@ -142,7 +171,9 @@ if __name__ == '__main__':
     
     mc = absorbingWalk(m,M).absorbTime()
 
-    
+    mc = randomWalk2D()
+    mc.computePi('linear')
+    mc.printPi() 
     #When states are scalar integers, the indirect method is faster here. 
     #The linear algebra solver is quite fast for these one-dimensional problems (here, krylov and power method have really poor performance)
 #    M = 100000

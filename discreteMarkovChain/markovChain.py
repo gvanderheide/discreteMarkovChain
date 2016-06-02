@@ -128,12 +128,18 @@ class markovChain(object):
         assert initialState is not None, "Initial state has not been specified."
         assert isinstance(initialState,(int,list,tuple,np.ndarray,set)), "initialState %r is not an int, tuple, list, set or numpy array" % initialState
 
-
-        if isinstance(initialState,(list,tuple)): 
-            #Check whether all entries are ints. Return an int if the len ==1, otherwise a tuple.
+         
+        if isinstance(initialState,list): 
+            #Check whether all entries of the list are ints. Return an int if the len ==1, otherwise a tuple.
             assert all(isinstance(i, int) for i in initialState), "initialState %r is not integer" % initialState 
             initialState = int(initialState) if len(initialState)==1 else tuple(initialState)          
-            
+
+        elif isinstance(initialState,tuple): 
+            #Check whether all entries are ints. Return an int if the len ==1, otherwise a tuple.
+            assert all(isinstance(i, int) for i in initialState), "initialState %r is not integer" % initialState
+            if len(initialState)==1:
+                initialState = int(initialState)     
+        
         elif isinstance(initialState,np.ndarray):
             #Check whether the state is a 1d numpy array. Return an int if it has length 1.
             assert issubclass(initialState.dtype.type, np.integer) and initialState.ndim==1, "initialState %r is not a one-dimensional integer numpy array" % initialState 
@@ -633,6 +639,3 @@ class finiteMarkovChain(markovChain):
         t[indices] = np.sum(N,axis=1)
         for index in indices:
             print( self.mapping[index],t[index] )
-
-        
-        

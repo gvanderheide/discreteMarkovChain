@@ -327,7 +327,7 @@ to set `k[0]=0` after each iteration.
   30.02998621]
 
 
-See `hitting_time.py` for a full working example.
+See ``hitting_time.py`` in the ``discreteMarkovchain`` directory for a full example.
 
 ----------------
 Changes in v0.22

@@ -283,14 +283,14 @@ to set ``k[0]=0`` after each iteration.
     mc = randomWalk(0,5)
     P = mc.getTransitionMatrix()
 
-    hittingset=[0]
+    hittingset=[0]  # the hitting set A
 
     one = np.ones(mc.size)
     one[hittingset] = 0
 
     k = np.zeros(mc.size)
     for i in range(100):
-        k = P.dot(x)+one
+        k = one + P.dot(k)
         k[hittingset]  = 0
     print(k)
 
@@ -300,18 +300,24 @@ to set ``k[0]=0`` after each iteration.
 
 
 A more proper stopping criterion is when the difference between the
-old and new value of ``k`` is below some threshold.
+old and new value of ``k`` is below some threshold. In the computations we use a mask
+to set `k[0]=0` after each iteration. 
 
 .. code:: python
 
     from numpy import linalg as LA
     
+    mask = np.zeros(mc.size)
+    for i in range(mc.size):
+        if i in hittingset:
+            mask[i]=1
+
     k1 = np.zeros(mc.size)
-    k2 = P.dot(k1)+one
+    k2 = one + P.dot(k1)
     i = 0
     while(LA.norm(k1-k2)>1e-6):
         k1=k2
-        k2 = P.dot(k1)+one
+        k2 = one + P.dot(k1)
         np.putmask(k2, mask, 0)
         i += 1
     print(k2)
@@ -321,6 +327,7 @@ old and new value of ``k`` is below some threshold.
   30.02998621]
 
 
+See ``hitting_time.py`` in the ``discreteMarkovchain`` directory for a full example.
 
 ----------------
 Changes in v0.22

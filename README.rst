@@ -283,7 +283,7 @@ to set ``k[0]=0`` after each iteration.
     mc = randomWalk(0,5)
     P = mc.getTransitionMatrix()
 
-    hittingset=[0]
+    hittingset=[0]  # the hitting set A
 
     one = np.ones(mc.size)
     one[hittingset] = 0
